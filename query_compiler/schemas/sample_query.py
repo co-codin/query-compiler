@@ -1,0 +1,44 @@
+import json
+
+SAMPLE_QUERY = json.dumps({
+    "attributes": [
+        {
+            "field": "patient.age",
+        },
+        {
+            "alias": "appointments"
+        }
+    ],
+    "aliases": {
+        "appointments": {
+            "aggregate": {
+                "function": "count",
+                "field": "patient.appointment",
+            }
+        },
+        "appointment_time": { "field": "patient.appointment.at" }
+    },
+    "group": [
+        { "field": "patient.appointment", }
+    ],
+    "filter": {
+        "operator": "AND",
+        "values": [
+            {
+                "operator": "<",
+                "field": "patient.age",
+                "value": 35
+            },
+            {
+                "field": "patient.appointment.at",
+                "operator": ">",
+                "value": "2022-08-01",
+            }
+        ]
+    },
+    "having": {
+        "operator": ">",
+        "alias": "appointments",
+        "value": 5
+    },
+})
