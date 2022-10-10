@@ -1,4 +1,4 @@
-from query_compiler.errors.base_error import QueryCompilerError
+from query_compiler.errors import QueryCompilerError
 
 
 class AttributeConvertError(QueryCompilerError):
