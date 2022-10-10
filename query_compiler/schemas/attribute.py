@@ -6,9 +6,11 @@ from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.errors.schemas_errors import AttributeConvertError
 
 
+logger: logging.Logger
+
+
 class Attribute(ABC):
     all_attributes = set()
-    _logger: logging.Logger
 
     @property
     def attr(self):
@@ -16,15 +18,16 @@ class Attribute(ABC):
 
     @classmethod
     def get(cls, record):
-        cls._logger = logging.getLogger(__name__)
-        for c in (Alias, Field, Aggregate):
+        global logger
+        logger = logging.getLogger(__name__)
+        for class_ in (Alias, Field, Aggregate):
             try:
-                attr = c(record)
+                attr = class_(record)
                 cls.all_attributes.add(attr)
                 return attr
             except KeyError:
-                cls._logger.warning(
-                    f"Record {record} couldn't be converted to {c}"
+                logger.warning(
+                    f"Record {record} couldn't be converted to {class_}"
                 )
         raise AttributeConvertError(record)
 
