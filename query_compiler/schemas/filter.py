@@ -8,15 +8,12 @@ from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.errors.schemas_errors import FilterConvertError, \
     FilterValueCastError
 
-logger: logging.Logger
+logger = logging.getLogger(__name__)
 
 
 class Filter(ABC):
-
     @classmethod
     def get(cls, record):
-        global logger
-        logger = logging.getLogger(__name__)
         for class_ in (BooleanFilter, SimpleFilter):
             try:
                 return class_(record)

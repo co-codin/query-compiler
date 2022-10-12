@@ -5,8 +5,7 @@ from abc import ABC
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.errors.schemas_errors import AttributeConvertError
 
-
-logger: logging.Logger
+logger = logging.getLogger(__name__)
 
 
 class Attribute(ABC):
@@ -18,8 +17,6 @@ class Attribute(ABC):
 
     @classmethod
     def get(cls, record):
-        global logger
-        logger = logging.getLogger(__name__)
         for class_ in (Alias, Field, Aggregate):
             try:
                 attr = class_(record)
