@@ -9,19 +9,19 @@ from query_compiler.schemas.filter import Filter, SimpleFilter, BooleanFilter
 from query_compiler.schemas.table import Table
 from query_compiler.errors.query_parse_errors import DeserializeJSONQueryError
 
+logger = logging.getLogger(__name__)
 _result = []
 
 
 def generate_sql_query(query: bytes) -> str:
     """Function for generating sql query from json query"""
-    logger = logging.getLogger(__name__)
     logger.info("Starting generating SQL query from the json query")
 
-    dict_query = _from_json_to_dict(query, logger)
-    attributes, filter_, groups, having = _parse_query(dict_query, logger)
-    root_table, tables = _build_join_hierarchy(logger)
+    dict_query = _from_json_to_dict(query)
+    attributes, filter_, groups, having = _parse_query(dict_query)
+    root_table, tables = _build_join_hierarchy()
     sql_query = _build_sql_query(
-        attributes, root_table, tables, filter_, groups, having, logger
+        attributes, root_table, tables, filter_, groups, having
     )
 
     logger.info("Generating SQL query from the json query successfully "
@@ -30,7 +30,7 @@ def generate_sql_query(query: bytes) -> str:
     return sql_query
 
 
-def _from_json_to_dict(query: bytes, logger: logging.Logger) -> Dict:
+def _from_json_to_dict(query: bytes) -> Dict:
     logger.info(f"Deserializing the input json query {query}")
     try:
         dict_query = json.loads(query)
@@ -41,7 +41,7 @@ def _from_json_to_dict(query: bytes, logger: logging.Logger) -> Dict:
         return dict_query
 
 
-def _parse_query(query: Dict, logger: logging.Logger) -> Tuple[
+def _parse_query(query: Dict) -> Tuple[
     List[Attribute],
     Filter,
     List[Attribute],
@@ -50,18 +50,18 @@ def _parse_query(query: Dict, logger: logging.Logger) -> Tuple[
     """Function for parsing json query and creating schemas objects"""
     logger.info(f"Starting parsing the following query {query}")
 
-    _parse_aliases(query, logger)
-    attributes = _parse_attributes(query, logger, key='attributes')
+    _parse_aliases(query)
+    attributes = _parse_attributes(query, key='attributes')
 
-    filter_ = _parse_filter(query, logger, key='filter')
-    groups = _parse_attributes(query, logger, key='group')
-    having = _parse_filter(query, logger, key='having')
+    filter_ = _parse_filter(query, key='filter')
+    groups = _parse_attributes(query, key='group')
+    having = _parse_filter(query, key='having')
 
     logger.info(f"Query parsing successfully completed")
     return attributes, filter_, groups, having
 
 
-def _parse_aliases(query: Dict, logger: logging.Logger):
+def _parse_aliases(query: Dict):
     try:
         for alias, record in query['aliases'].items():
             Alias.all_aliases[alias] = Attribute.get(record)
@@ -71,7 +71,6 @@ def _parse_aliases(query: Dict, logger: logging.Logger):
 
 def _parse_attributes(
         query: Dict,
-        logger: logging.Logger,
         key: Literal['attributes', 'group']
 ) -> Union[List[Attribute], None]:
     """Parses attributes and group sections of the input query"""
@@ -83,7 +82,6 @@ def _parse_attributes(
 
 def _parse_filter(
         query: Dict,
-        logger: logging.Logger,
         key: Literal['filter', 'having']
 ) -> Union[Filter, None]:
     """Parses filter and having sections of the input query"""
@@ -93,7 +91,7 @@ def _parse_filter(
         logger.warning(f"There's no {key} in the query {query}")
 
 
-def _build_join_hierarchy(logger: logging.Logger) -> Tuple[Table, Set[Table]]:
+def _build_join_hierarchy() -> Tuple[Table, Set[Table]]:
     """Function for building join hierarchy of the json query"""
     logger.info("Starting building join hierarchy")
     tables = set()
@@ -115,7 +113,6 @@ def _build_sql_query(
         filter_: Filter,
         groups: List[Attribute],
         having: Filter,
-        logger: logging.Logger
 ) -> str:
     """Function for building sql query for a particular database from
     schemas objects"""
