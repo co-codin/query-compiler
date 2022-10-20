@@ -22,3 +22,10 @@ class FilterValueCastError(QueryCompilerError):
         super().__init__(
             f"Couldn't cast SimpleFilter value {value} to {type_name}"
         )
+
+
+class NoAttributesInInputQuery(QueryCompilerError):
+    def __init__(self, dict_query):
+        super().__init__(
+            f"Theres' no attributes in the following query {dict_query}"
+        )

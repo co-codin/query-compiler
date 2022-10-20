@@ -17,8 +17,8 @@ class Filter(ABC):
         for class_ in (BooleanFilter, SimpleFilter):
             try:
                 return class_(record)
-            except ValueError:
-                logger.warning(
+            except (KeyError, ValueError):
+                logger.info(
                     f"Record {record} couldn't be converted to {class_}"
                 )
         raise FilterConvertError(record)
@@ -30,6 +30,9 @@ class BooleanFilter(Filter):
         if self.operator.lower() not in ('and', 'or'):
             raise ValueError()
         self.values = [Filter.get(r) for r in record['values']]
+
+    def __eq__(self, other):
+        return self.operator == other.operator and self.values == other.values
 
 
 class SimpleFilter(Filter):
@@ -47,6 +50,11 @@ class SimpleFilter(Filter):
         self.operator = record['operator']
         self.attr = Attribute.get(record)
         self.value = record['value']
+
+    def __eq__(self, other):
+        return self.operator == other.operator \
+               and self.attr == other.attr \
+               and self.value == other.value
 
     @property
     def value(self):

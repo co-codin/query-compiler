@@ -8,6 +8,7 @@ from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.schemas.filter import Filter, SimpleFilter, BooleanFilter
 from query_compiler.schemas.table import Table, Relation
 from query_compiler.errors.query_parse_errors import DeserializeJSONQueryError
+from query_compiler.errors.schemas_errors import NoAttributesInInputQuery
 
 logger = logging.getLogger(__name__)
 _result = []
@@ -23,6 +24,7 @@ def generate_sql_query(query: bytes) -> str:
     sql_query = _build_sql_query(
         attributes, root_table, tables, filter_, groups, having
     )
+    _clear()
 
     logger.info("Generating SQL query from the json query successfully "
                 "completed"
@@ -37,6 +39,8 @@ def _from_json_to_dict(query: bytes) -> Dict:
     except json.JSONDecodeError as json_decode_err:
         raise DeserializeJSONQueryError(query) from json_decode_err
     else:
+        if not isinstance(dict_query, Dict):
+            raise DeserializeJSONQueryError(query)
         logger.info("Query deserialization successfully completed")
         return dict_query
 
@@ -66,7 +70,7 @@ def _parse_aliases(query: Dict):
         for alias, record in query['aliases'].items():
             Alias.all_aliases[alias] = Attribute.get(record)
     except KeyError:
-        logger.warning(f"There's no aliases in the query {query}")
+        logger.info(f"There's no aliases in the query {query}")
 
 
 def _parse_attributes(
@@ -77,7 +81,9 @@ def _parse_attributes(
     try:
         return [Attribute.get(record) for record in query[key]]
     except KeyError:
-        logger.warning(f"There's no {key} in the query {query}")
+        if key == 'attributes':
+            raise NoAttributesInInputQuery(query)
+        logger.info(f"There's no {key} in the query {query}")
 
 
 def _parse_filter(
@@ -88,7 +94,7 @@ def _parse_filter(
     try:
         return Filter.get(query[key])
     except KeyError:
-        logger.warning(f"There's no {key} in the query {query}")
+        logger.info(f"There's no {key} in the query {query}")
 
 
 def _build_join_hierarchy() -> Tuple[Table, List[Relation]]:
@@ -164,6 +170,12 @@ def _build_filter_clause(filter_: Filter, key: Literal['where', 'having']):
         _result.append(_get_pg_filter(filter_))
 
 
+def _clear():
+    _result.clear()
+    Attribute.clear()
+    Alias.clear()
+
+
 """
 In case of several types of databases create abstract class with these 
 2 methods(_get_attribute and _get_filter). 
@@ -196,4 +208,5 @@ def _get_pg_filter(filter_: Filter) -> str:
 if __name__ == '__main__':
     """For debugging purposes"""
     from query_compiler.schemas.sample_query import SAMPLE_QUERY
+    print(generate_sql_query(SAMPLE_QUERY))
     print(generate_sql_query(SAMPLE_QUERY))

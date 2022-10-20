@@ -23,10 +23,14 @@ class Attribute(ABC):
                 cls.all_attributes.add(attr)
                 return attr
             except KeyError:
-                logger.warning(
+                logger.info(
                     f"Record {record} couldn't be converted to {class_}"
                 )
         raise AttributeConvertError(record)
+
+    @classmethod
+    def clear(cls):
+        cls.all_attributes.clear()
 
 
 class Field(Attribute):
@@ -71,6 +75,10 @@ class Alias(Attribute):
     @property
     def id(self):
         return self.attr.id
+
+    @classmethod
+    def clear(cls):
+        cls.all_aliases.clear()
 
 
 class Aggregate(Attribute):
