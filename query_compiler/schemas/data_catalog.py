@@ -13,10 +13,12 @@ class DataCatalog:
             "db": "main",
             "table": {
                 "name": "appointment",
-                "relation": {
-                    "table": "patient",
-                    "on": ("id", "patient_id"),
-                },
+                "relation": (
+                    {
+                        "table": "patient",
+                        "on": ("id", "patient_id"),
+                    },
+                ),
             },
             "field": "id",
             "type": "int",
@@ -25,10 +27,12 @@ class DataCatalog:
             "db": "main",
             "table": {
                 "name": "appointment",
-                "relation": {
-                    "table": "patient",
-                    "on": ("id", "patient_id"),
-                },
+                "relation": (
+                    {
+                        "table": "patient",
+                        "on": ("id", "patient_id"),
+                    },
+                )
             },
             "field": "age",
             "type": "date",

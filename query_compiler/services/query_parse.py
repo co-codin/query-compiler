@@ -1,12 +1,12 @@
 import json
 import logging
 
-from typing import Dict, Tuple, Set, cast, Union, Literal, List
+from typing import Dict, Tuple, cast, Union, Literal, List
 
 from query_compiler.schemas.attribute import Attribute, Alias, Aggregate
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.schemas.filter import Filter, SimpleFilter, BooleanFilter
-from query_compiler.schemas.table import Table
+from query_compiler.schemas.table import Table, Relation
 from query_compiler.errors.query_parse_errors import DeserializeJSONQueryError
 
 logger = logging.getLogger(__name__)
@@ -91,25 +91,33 @@ def _parse_filter(
         logger.warning(f"There's no {key} in the query {query}")
 
 
-def _build_join_hierarchy() -> Tuple[Table, Set[Table]]:
+def _build_join_hierarchy() -> Tuple[Table, List[Relation]]:
     """Function for building join hierarchy of the json query"""
     logger.info("Starting building join hierarchy")
-    tables = set()
     root_table = None
-
+    joined = set()
+    relations = []
     for attr in Attribute.all_attributes:
-        if attr.table.related is None:
-            root_table = attr.table
+        table = attr.table
+        if not table.joins:
+            root_table = table.name
         else:
-            tables.add(attr.table)
+            root_table = table.joins[0].related_table
+
+        for relation in table.joins:
+            if relation in joined:
+                continue
+            relations.append(relation)
+            joined.add(relation)
+
     logger.info("Join hierarchy building successfully completed")
-    return root_table, tables
+    return root_table, relations
 
 
 def _build_sql_query(
         attributes: List[Attribute],
         root_table: Table,
-        tables: Set[Table],
+        tables: List[Relation],
         filter_: Filter,
         groups: List[Attribute],
         having: Filter,
@@ -140,13 +148,13 @@ def _build_attributes_clause(
         _result.append(', '.join(attributes_to_append))
 
 
-def _build_from_clause(root_table: Table, tables: Set[Table]):
+def _build_from_clause(root_table: Table, relations: List[Relation]):
     """Builds from and join clauses"""
-    _result.append(f'from {root_table.name}')
-    for join_table in tables:
-        _result.append(f'join {join_table.name} on '
-                       f'{join_table.related}.{join_table.related_on[0]} = '
-                       f'{join_table.name}.{join_table.related_on[1]}')
+    _result.append(f'from {root_table}')
+    for rel in relations:
+        _result.append(f'join {rel.table} on '
+                       f'{rel.related_table}.{rel.related_key} = '
+                       f'{rel.table}.{rel.key}')
 
 
 def _build_filter_clause(filter_: Filter, key: Literal['where', 'having']):
