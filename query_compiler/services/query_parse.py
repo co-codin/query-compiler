@@ -33,15 +33,6 @@ def generate_sql_query(query: bytes) -> str:
     return sql_query
 
 
-def _get_missing_attribute_names():
-    return [
-        attribute.field
-        for attribute in Attribute.all_attributes
-        if (not isinstance(attribute, Alias) and
-            not DataCatalog.is_field_in_attributes_dict(attribute.field))
-    ]
-
-
 def _from_json_to_dict(query: bytes) -> Dict:
     logger.info(f"Deserializing the input json query {query}")
     try:
@@ -68,14 +59,32 @@ def _parse_query(query: Dict) -> Tuple[
     attributes = _parse_attributes(query, key='attributes')
     groups = _parse_attributes(query, key='group')
 
-    missing_attrs = _get_missing_attribute_names()
-    DataCatalog.load_missing_attr_data(missing_attrs)
+    _load_missing_attribute_data()
 
     filter_ = _parse_filter(query, key='filter')
     having = _parse_filter(query, key='having')
 
     logger.info(f"Query parsing successfully completed")
     return attributes, filter_, groups, having
+
+
+def _load_missing_attribute_data():
+    missing_attrs = _get_missing_attribute_names()
+    if len(missing_attrs) > 1:
+        DataCatalog.load_missing_attr_data_list(missing_attrs)
+    elif len(missing_attrs) == 1:
+        DataCatalog.load_missing_attr_data(missing_attrs[0])
+
+
+def _get_missing_attribute_names() -> List[str]:
+    missing_attributes = []
+    for attribute in Attribute.all_attributes:
+        if isinstance(attribute, Aggregate):
+            attribute = attribute.field
+        if (not isinstance(attribute, Alias) and
+                not DataCatalog.is_field_in_attributes_dict(attribute.id)):
+            missing_attributes.append(attribute.id)
+    return missing_attributes
 
 
 def _parse_aliases(query: Dict):
