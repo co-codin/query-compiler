@@ -7,7 +7,6 @@ class Table:
         for rel in reversed(record.get('relation', ())):
             self.joins.append(Relation(table, rel))
             table = rel['table']
-        self.joins.reverse()
 
     def __hash__(self):
         return hash((self.name, self.joins))

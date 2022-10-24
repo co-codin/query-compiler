@@ -29,3 +29,11 @@ class NoAttributesInInputQuery(QueryCompilerError):
         super().__init__(
             f"Theres' no attributes in the following query {dict_query}"
         )
+
+
+class HTTPErrorFromDataCatalog(QueryCompilerError):
+    def __init__(self, url, header, body):
+        super().__init__(
+            f"Couldn't get attribute data from the DataCatalog service. "
+            f"Url: {url}, headers: {header}, body: {body}"
+        )

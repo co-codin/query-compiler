@@ -19,6 +19,7 @@ def generate_sql_query(query: bytes) -> str:
     logger.info("Starting generating SQL query from the json query")
 
     dict_query = _from_json_to_dict(query)
+
     attributes, filter_, groups, having = _parse_query(dict_query)
     root_table, tables = _build_join_hierarchy()
     sql_query = _build_sql_query(
@@ -30,6 +31,15 @@ def generate_sql_query(query: bytes) -> str:
                 "completed"
                 )
     return sql_query
+
+
+def _get_missing_attribute_names():
+    return [
+        attribute.field
+        for attribute in Attribute.all_attributes
+        if (not isinstance(attribute, Alias) and
+            not DataCatalog.is_field_in_attributes_dict(attribute.field))
+    ]
 
 
 def _from_json_to_dict(query: bytes) -> Dict:
@@ -56,9 +66,12 @@ def _parse_query(query: Dict) -> Tuple[
 
     _parse_aliases(query)
     attributes = _parse_attributes(query, key='attributes')
+    groups = _parse_attributes(query, key='group')
+
+    missing_attrs = _get_missing_attribute_names()
+    DataCatalog.load_missing_attr_data(missing_attrs)
 
     filter_ = _parse_filter(query, key='filter')
-    groups = _parse_attributes(query, key='group')
     having = _parse_filter(query, key='having')
 
     logger.info(f"Query parsing successfully completed")
@@ -108,9 +121,9 @@ def _build_join_hierarchy() -> Tuple[Table, List[Relation]]:
         if not table.joins:
             root_table = table.name
         else:
-            root_table = table.joins[0].related_table
+            root_table = table.joins[-1].related_table
 
-        for relation in table.joins:
+        for relation in reversed(table.joins):
             if relation in joined:
                 continue
             relations.append(relation)
@@ -207,6 +220,10 @@ def _get_pg_filter(filter_: Filter) -> str:
 
 if __name__ == '__main__':
     """For debugging purposes"""
-    from query_compiler.schemas.sample_query import SAMPLE_QUERY
-    print(generate_sql_query(SAMPLE_QUERY))
-    print(generate_sql_query(SAMPLE_QUERY))
+    from query_compiler.schemas.sample_query import SAMPLE_QUERY, \
+        SAMPLE_QUERY_GRAPH
+
+    print(generate_sql_query(SAMPLE_QUERY_GRAPH))
+    print(generate_sql_query(SAMPLE_QUERY_GRAPH))
+    # print(generate_sql_query(SAMPLE_QUERY))
+    # print(generate_sql_query(SAMPLE_QUERY))
