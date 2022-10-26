@@ -3,14 +3,14 @@ import logging
 
 from typing import Callable
 
-from query_compiler.configs.constants import *
+from query_compiler.configs.settings import settings
 
 
 class RabbitMQService:
     def __init__(self):
         """Set connection parameters to RabbitMQ task broker"""
         self._conn_params = pika.ConnectionParameters(
-            host=TASK_BROKER_HOST
+            host=settings.task_broker_host
         )
         self._logger = logging.getLogger(__name__)
 
@@ -31,15 +31,17 @@ class RabbitMQService:
         self._query_channel = self._conn.channel()
 
         self._request_channel.queue_declare(
-            REQUEST_QUEUE,
-            REQUEST_CHANNEL_IS_DURABLE
+            settings.request_queue,
+            settings.request_channel_is_durable
         )
         self._query_channel.queue_declare(
-            QUERY_QUEUE,
-            QUERY_CHANNEL_IS_DURABLE
+            settings.query_queue,
+            settings.query_channel_is_durable
         )
 
-        self._request_channel.basic_qos(REQUEST_CHANNEL_PREFETCH_COUNT)
+        self._request_channel.basic_qos(
+            settings.request_channel_prefetch_count
+        )
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -61,7 +63,7 @@ class RabbitMQService:
 
     def set_callback_function(self, callback: Callable):
         self._request_channel.basic_consume(
-            REQUEST_QUEUE, on_message_callback=callback
+            settings.request_queue, on_message_callback=callback
         )
 
     def start_consuming(self):
@@ -69,8 +71,8 @@ class RabbitMQService:
 
     def publish_sql_query(self, sql_query: str):
         self._query_channel.basic_publish(
-            exchange=QUERY_CHANNEL_EXCHANGE,
-            routing_key=QUERY_CHANNEL_ROUTING_KEY,
+            exchange=settings.query_channel_exchange,
+            routing_key=settings.query_channel_routing_key,
             body=bytes(sql_query),
             properties=pika.BasicProperties(
                 delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE
