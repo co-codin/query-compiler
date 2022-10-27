@@ -1,9 +1,7 @@
-class QueryParseServiceError(Exception):
-    def __init__(self, message: str = None):
-        super().__init__(message)
+from query_compiler.errors import QueryCompilerError
 
 
-class DeserializeJSONQueryError(QueryParseServiceError):
+class DeserializeJSONQueryError(QueryCompilerError):
     def __init__(self, json_query: bytes):
         super().__init__(
             f"Couldn't deserialize the input json query {json_query}"

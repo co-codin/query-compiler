@@ -1,3 +1,4 @@
+from typing import Tuple
 from pydantic import BaseSettings, Field
 
 
@@ -20,6 +21,14 @@ class Settings(BaseSettings):
     query_channel_is_durable: bool = True
     query_channel_exchange: str = ''
     query_channel_routing_key: str = 'query_queue'
+
+    """DataCatalog constants"""
+    data_catalog_url: str = "http://data_catalog"
+    data_catalog_port: int = 8000
+    retries: int = 5
+    timeout: int = 1
+    retry_status_list: Tuple[int, ...] = (429, 500, 502, 503, 504)
+    retry_method_list: Tuple[str, ...] = ('GET',)
 
     class Config:
         env_file = '../../.env'

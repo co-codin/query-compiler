@@ -4,7 +4,7 @@ import pika.channel
 from query_compiler.configs.logger_config import config_logger
 from query_compiler.services.rabbitmq import RabbitMQService
 from query_compiler.services.query_parse import generate_sql_query
-from query_compiler.errors.query_parse_errors import QueryParseServiceError
+from query_compiler.errors.base_error import QueryCompilerError
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
                 sql_query = generate_sql_query(body)
                 rabbit_mq.publish_sql_query(sql_query)
                 ch.basic_ack(delivery_tag=method.delivery_tag)
-            except QueryParseServiceError as exc:
+            except QueryCompilerError as exc:
                 logger.exception(str(exc))
                 ch.basic_reject(
                     delivery_tag=method.delivery_tag,
