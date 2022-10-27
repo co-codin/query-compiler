@@ -8,8 +8,7 @@ from requests.adapters import HTTPAdapter, Retry
 from query_compiler.errors.schemas_errors import \
     HTTPErrorFromDataCatalog
 from query_compiler.schemas.table import Table
-from query_compiler.configs.constants import NEO4J_URL, NEO4J_PORT, RETRIES, \
-    RETRY_STATUS_LIST, RETRY_METHOD_LIST, TIMEOUT
+from query_compiler.configs.settings import settings
 
 
 class DataCatalog:
@@ -69,12 +68,13 @@ class DataCatalog:
 
     @classmethod
     def load_missing_attr_data(cls, attr_name: str):
-        url = f"{NEO4J_URL}:{NEO4J_PORT}/mappings/{attr_name}"
+        url = \
+            f"{settings.neo4j_url}:{settings.neo4j_port}/mappings/{attr_name}"
         http_session = cls._get_http_session(url)
         try:
             graph_req = http_session.get(
                 url,
-                timeout=TIMEOUT
+                timeout=settings.timeout
             )
         except RequestException as request_err:
             req = request_err.request
@@ -87,13 +87,13 @@ class DataCatalog:
 
     @classmethod
     def load_missing_attr_data_list(cls, missing_attributes: List[str]):
-        url = f"{NEO4J_URL}:{NEO4J_PORT}/mappings"
+        url = f"{settings.neo4j_url}:{settings.neo4j_port}/mappings"
         http_session = cls._get_http_session(url)
         try:
             graph_req = http_session.get(
                 url,
                 data=json.dumps({'attributes': missing_attributes}),
-                timeout=TIMEOUT
+                timeout=settings.timeout
             )
         except RequestException as request_error:
             req = request_error.request
@@ -110,9 +110,9 @@ class DataCatalog:
     @staticmethod
     def _get_http_session(url: str) -> requests.Session:
         retry_strategy = Retry(
-            total=RETRIES,
-            status_forcelist=RETRY_STATUS_LIST,
-            method_whitelist=RETRY_METHOD_LIST
+            total=settings.retries,
+            status_forcelist=settings.retry_status_list,
+            method_whitelist=settings.retry_method_list
         )
         http_session = requests.Session()
         http_session.hooks["response"] = [
