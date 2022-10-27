@@ -68,8 +68,8 @@ class DataCatalog:
 
     @classmethod
     def load_missing_attr_data(cls, attr_name: str):
-        url = \
-            f"{settings.neo4j_url}:{settings.neo4j_port}/mappings/{attr_name}"
+        url = f"{settings.data_catalog_url}:" \
+              f"{settings.data_catalog_port}/mappings/{attr_name}"
         http_session = cls._get_http_session(url)
         try:
             graph_req = http_session.get(
@@ -87,7 +87,8 @@ class DataCatalog:
 
     @classmethod
     def load_missing_attr_data_list(cls, missing_attributes: List[str]):
-        url = f"{settings.neo4j_url}:{settings.neo4j_port}/mappings"
+        url = f"{settings.data_catalog_url}:" \
+              f"{settings.data_catalog_port}/mappings"
         http_session = cls._get_http_session(url)
         try:
             graph_req = http_session.get(

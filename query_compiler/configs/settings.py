@@ -23,8 +23,8 @@ class Settings(BaseSettings):
     query_channel_routing_key: str = 'query_queue'
 
     """DataCatalog constants"""
-    neo4j_url: str = "http://localhost"
-    neo4j_port: int = 8000
+    data_catalog_url: str = "http://data_catalog"
+    data_catalog_port: int = 8000
     retries: int = 5
     timeout: int = 1
     retry_status_list: Tuple[int, ...] = (429, 500, 502, 503, 504)
