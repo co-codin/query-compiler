@@ -1,6 +1,7 @@
 import pytest
 
 from datetime import date
+from unittest import mock
 from unittest.mock import patch, Mock
 
 from query_compiler.schemas.attribute import *
@@ -10,7 +11,9 @@ from query_compiler.errors.schemas_errors import FilterValueCastError, \
 
 
 def test_boolean_filter_get_positive(
-        clear_all_attributes, get_boolean_filter_record
+        clear_all_attributes,
+        initiate_data_catalog_attrs,
+        get_boolean_filter_record
 ):
     expected_filter = BooleanFilter(get_boolean_filter_record)
     actual_filter = Filter.get(get_boolean_filter_record)
@@ -22,7 +25,9 @@ def test_boolean_filter_get_positive(
 
 
 def test_simple_filter_get_positive(
-        clear_all_attributes, get_simple_filter_record
+        clear_all_attributes,
+        initiate_data_catalog_attrs,
+        get_simple_filter_record
 ):
     expected_filter = SimpleFilter(get_simple_filter_record)
     actual_filter = Filter.get(get_simple_filter_record)
@@ -38,39 +43,60 @@ def test_filter_get_negative(clear_all_attributes):
     assert len(Attribute.all_attributes) == 0
 
 
+@patch('query_compiler.schemas.data_catalog.DataCatalog.get_type')
+def test_get_type_name_field(mock_get_type: Mock, get_simple_filter_record):
+    expected_type = 'int'
+    mock_get_type.return_value = expected_type
+    simple_filter = SimpleFilter(get_simple_filter_record)
+    actual_type = simple_filter._get_type_name()
+    assert expected_type == actual_type
+    assert mock_get_type.call_args_list == [
+        mock.call(simple_filter.attr.id), mock.call(simple_filter.attr.id)
+    ]
+
+
 @pytest.mark.parametrize(
-    'key, type_, index',
+    'key, expected_type',
     (
-        ('filter', 'int', 0),
-        ('having', 'int', 0),
-        ('having', 'float', 1),
-        ('having', 'int', 2),
-        ('having', 'int', 3),
-        ('having', 'int', 4),
+            ('count', 'int'),
+            ('avg', 'float')
     ),
-    ids=(
-            'filter NO_AVG',
-            'having COUNT',
-            'having AVG',
-            'having SUM',
-            'having MIN',
-            'having MAX'
-    )
 )
 @patch('query_compiler.schemas.data_catalog.DataCatalog.get_type')
-def test_get_type_name_positive(
+def test_get_type_name_having_count_avg(
         mock_get_type: Mock,
         get_filter_having_with_all_aggregate_funcs,
         key,
-        type_,
-        index
+        expected_type
 ):
-    mock_get_type.return_value = type_
+    mock_get_type.return_value = expected_type
     simple_filter = SimpleFilter(
-        get_filter_having_with_all_aggregate_funcs[key][index]
+        get_filter_having_with_all_aggregate_funcs[key]
     )
     actual_type = simple_filter._get_type_name()
-    assert type_ == actual_type
+    assert actual_type == expected_type
+    assert mock_get_type.call_count == 0
+
+
+@pytest.mark.parametrize('key', ('sum', 'min', 'max'))
+@patch('query_compiler.schemas.data_catalog.DataCatalog.get_type')
+def test_get_type_name_having_positive(
+        mock_get_type: Mock,
+        get_filter_having_with_all_aggregate_funcs,
+        key,
+):
+    expected_type = 'int'
+    mock_get_type.return_value = expected_type
+    simple_filter = SimpleFilter(
+        get_filter_having_with_all_aggregate_funcs[key]
+    )
+    actual_type = simple_filter._get_type_name()
+    assert expected_type == actual_type
+    filter_alias = simple_filter.attr
+    assert mock_get_type.call_args_list == [
+        mock.call(filter_alias.attr.field.id),
+        mock.call(filter_alias.attr.field.id)
+    ]
 
 
 @pytest.mark.parametrize(
@@ -96,6 +122,7 @@ def test_simple_filter_value_setter_positive(
         get_simple_filters_with_fields_of_all_types[index]
     )
     assert type(simple_filter.value) == class_
+    assert mock_get_type_name.call_count == 1
 
 
 @pytest.mark.parametrize(

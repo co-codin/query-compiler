@@ -1,6 +1,47 @@
 import pytest
 
+from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.schemas.attribute import Alias, Attribute
+
+
+@pytest.fixture()
+def initiate_data_catalog_attrs():
+    DataCatalog._attributes = {
+        "patient.age": {
+            "db": "main",
+            "table": {"name": "patient"},
+            "field": "age",
+            "type": "int",
+        },
+        "patient.appointment": {
+            "db": "main",
+            "table": {
+                "name": "appointment",
+                "relation": (
+                    {
+                        "table": "patient",
+                        "on": ("id", "patient_id"),
+                    },
+                ),
+            },
+            "field": "id",
+            "type": "int",
+        },
+        "patient.appointment.at": {
+            "db": "main",
+            "table": {
+                "name": "appointment",
+                "relation": (
+                    {
+                        "table": "patient",
+                        "on": ("id", "patient_id"),
+                    },
+                )
+            },
+            "field": "age",
+            "type": "date",
+        }
+    }
 
 
 @pytest.fixture()

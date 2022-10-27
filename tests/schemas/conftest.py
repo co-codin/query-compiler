@@ -35,40 +35,31 @@ def get_filter_having_with_all_aggregate_funcs(
         add_aliases_with_all_aggr_funcs
 ):
     return {
-        "filter": (
-            {
-                "operator": "<",
-                "field": "patient.age",
-                "value": 35
-            },
-        ),
-        "having": (
-            {
+        'count': {
                 "operator": ">",
                 "alias": "appointments_count",
                 "value": 5
             },
-            {
+        'avg': {
                 "operator": ">",
                 "alias": "appointments_avg",
                 "value": 5.
             },
-            {
+        'sum': {
                 "operator": ">",
                 "alias": "appointments_sum",
                 "value": 5
             },
-            {
+        'min': {
                 "operator": ">",
                 "alias": "appointments_min",
                 "value": 5
             },
-            {
+        'max': {
                 "operator": ">",
                 "alias": "appointments_max",
                 "value": 5
             },
-        )
     }
 
 

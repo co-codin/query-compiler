@@ -2,8 +2,7 @@ import json
 import logging
 
 from typing import Dict, Tuple, cast, Union, Literal, List
-
-from query_compiler.schemas.attribute import Attribute, Alias, Aggregate
+from query_compiler.schemas.attribute import Attribute, Alias, Aggregate, Field
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.schemas.filter import Filter, SimpleFilter, BooleanFilter
 from query_compiler.schemas.table import Table, Relation
@@ -77,14 +76,12 @@ def _load_missing_attribute_data():
 
 
 def _get_missing_attribute_names() -> List[str]:
-    missing_attributes = []
-    for attribute in Attribute.all_attributes:
-        if isinstance(attribute, Aggregate):
-            attribute = attribute.field
-        if (not isinstance(attribute, Alias) and
-                not DataCatalog.is_field_in_attributes_dict(attribute.id)):
-            missing_attributes.append(attribute.id)
-    return missing_attributes
+    return [
+        attribute.id
+        for attribute in Attribute.all_attributes
+        if (isinstance(attribute, Field) and
+            not DataCatalog.is_field_in_attributes_dict(attribute.id))
+    ]
 
 
 def _parse_aliases(query: Dict):
@@ -229,10 +226,11 @@ def _get_pg_filter(filter_: Filter) -> str:
 
 if __name__ == '__main__':
     """For debugging purposes"""
+    from query_compiler.configs.logger_config import config_logger
     from query_compiler.schemas.sample_query import SAMPLE_QUERY, \
         SAMPLE_QUERY_GRAPH
 
+    config_logger()
     print(generate_sql_query(SAMPLE_QUERY_GRAPH))
-    print(generate_sql_query(SAMPLE_QUERY_GRAPH))
-    # print(generate_sql_query(SAMPLE_QUERY))
-    # print(generate_sql_query(SAMPLE_QUERY))
+    print()
+    print(generate_sql_query(SAMPLE_QUERY))

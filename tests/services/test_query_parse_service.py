@@ -2,7 +2,8 @@ import pytest
 
 from query_compiler.schemas.filter import BooleanFilter, SimpleFilter
 from query_compiler.services.query_parse import _from_json_to_dict, \
-    _parse_aliases, _parse_attributes, _parse_filter
+    _parse_aliases, _parse_attributes, _parse_filter, \
+    _get_missing_attribute_names
 from query_compiler.errors.query_parse_errors import DeserializeJSONQueryError
 from query_compiler.errors.schemas_errors import NoAttributesInInputQuery
 from query_compiler.schemas.attribute import *
@@ -20,9 +21,7 @@ def test_from_json_to_dict_positive(
     'json_query_in',
     (b'', b'rubbish', b'[rubbish]' b'(rubbish)', b'10')
 )
-def test_from_json_to_dict_json_decode_error(
-        get_sample_query_json, json_query_in
-):
+def test_from_json_to_dict_json_decode_error(json_query_in):
     with pytest.raises(DeserializeJSONQueryError):
         _from_json_to_dict(json_query_in)
 
@@ -84,7 +83,9 @@ def test_parse_attributes_no_group(clear_all_attributes):
 
 
 def test_parse_filter_positive(
-        clear_all_attributes, get_boolean_filter_record
+        clear_all_attributes,
+        initiate_data_catalog_attrs,
+        get_boolean_filter_record
 ):
     record = {
         'filter': get_boolean_filter_record
@@ -99,7 +100,9 @@ def test_parse_filter_positive(
 
 
 def test_parse_having_positive(
-        add_appointments_alias, get_having_simple_record
+        add_appointments_alias,
+        initiate_data_catalog_attrs,
+        get_having_simple_record
 ):
     actual_filter = _parse_filter(get_having_simple_record, key='having')
     expected_filter = SimpleFilter(get_having_simple_record['having'])
@@ -121,3 +124,13 @@ def test_parse_filter_no_filter(clear_all_aliases, clear_all_attributes, key):
     _parse_filter({}, key=key)
     assert len(Alias.all_aliases) == 0
     assert len(Attribute.all_attributes) == 0
+
+
+def test_get_missing_attribute_names(
+        get_all_attributes, add_not_missing_attrs_to_data_catalog
+):
+    actual_missing_attrs = _get_missing_attribute_names()
+    expected_missing_attrs = (
+        'missing_field', 'missing_field_from_aggregate'
+    )
+    assert set(actual_missing_attrs) == set(expected_missing_attrs)
