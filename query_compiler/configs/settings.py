@@ -11,16 +11,16 @@ class Settings(BaseSettings):
     encoding: str = 'utf-8'
 
     """RabbitMQ constants"""
-    task_broker_host: str = Field('localhost')
+    mq_connection_string: str = 'amqp://dwh:dwh@rabbit:5672'
     request_queue: str = 'request_queue'
-    query_queue: str = 'query_queue'
+    result_queue: str = 'query_queue'
 
     request_channel_is_durable: bool = True
-    request_channel_prefetch_count: int = 1
+    request_channel_prefetch_count: int = 0
 
-    query_channel_is_durable: bool = True
-    query_channel_exchange: str = ''
-    query_channel_routing_key: str = 'query_queue'
+    result_channel_is_durable: bool = True
+    result_channel_exchange: str = ''
+    result_channel_routing_key: str = 'result'
 
     """DataCatalog constants"""
     data_catalog_url: str = "http://data_catalog"
