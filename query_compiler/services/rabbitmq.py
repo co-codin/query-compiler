@@ -1,3 +1,4 @@
+import json
 import pika
 import logging
 
@@ -9,9 +10,7 @@ from query_compiler.configs.settings import settings
 class RabbitMQService:
     def __init__(self):
         """Set connection parameters to RabbitMQ task broker"""
-        self._conn_params = pika.ConnectionParameters(
-            host=settings.task_broker_host
-        )
+        self._conn_params = pika.URLParameters(settings.mq_connection_string)
         self._logger = logging.getLogger(__name__)
 
     def __enter__(self):
@@ -35,8 +34,8 @@ class RabbitMQService:
             settings.request_channel_is_durable
         )
         self._query_channel.queue_declare(
-            settings.query_queue,
-            settings.query_channel_is_durable
+            settings.result_queue,
+            settings.result_channel_is_durable
         )
 
         self._request_channel.basic_qos(
@@ -69,11 +68,14 @@ class RabbitMQService:
     def start_consuming(self):
         self._request_channel.start_consuming()
 
-    def publish_sql_query(self, sql_query: str):
+    def publish_sql_query(self, guid: str, sql_query: str):
         self._query_channel.basic_publish(
-            exchange=settings.query_channel_exchange,
-            routing_key=settings.query_channel_routing_key,
-            body=bytes(sql_query),
+            exchange=settings.result_channel_exchange,
+            routing_key=settings.result_channel_routing_key,
+            body=json.dumps({
+                'guid': guid,
+                'query': sql_query
+            }).encode('utf-8'),
             properties=pika.BasicProperties(
                 delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE
             )

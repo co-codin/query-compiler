@@ -1,4 +1,5 @@
 import logging
+import json
 import pika.channel
 
 from query_compiler.configs.logger_config import config_logger
@@ -20,8 +21,11 @@ def main():
                 body: bytes
         ):
             try:
-                sql_query = generate_sql_query(body)
-                rabbit_mq.publish_sql_query(sql_query)
+                payload = json.loads(body)
+                guid = payload['guid']
+                query = payload['query']
+                sql_query = generate_sql_query(query)
+                rabbit_mq.publish_sql_query(guid, sql_query)
                 ch.basic_ack(delivery_tag=method.delivery_tag)
             except QueryCompilerError as exc:
                 logger.exception(str(exc))
