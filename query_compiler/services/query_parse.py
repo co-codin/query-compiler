@@ -1,4 +1,3 @@
-import json
 import logging
 
 from typing import Dict, Tuple, cast, Union, Literal, List
@@ -6,18 +5,15 @@ from query_compiler.schemas.attribute import Attribute, Alias, Aggregate, Field
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.schemas.filter import Filter, SimpleFilter, BooleanFilter
 from query_compiler.schemas.table import Table, Relation
-from query_compiler.errors.query_parse_errors import DeserializeJSONQueryError
 from query_compiler.errors.schemas_errors import NoAttributesInInputQuery
 
 logger = logging.getLogger(__name__)
 _result = []
 
 
-def generate_sql_query(query: bytes) -> str:
+def generate_sql_query(dict_query: Dict) -> str:
     """Function for generating sql query from json query"""
     logger.info("Starting generating SQL query from the json query")
-
-    dict_query = _from_json_to_dict(query)
 
     attributes, filter_, groups, having = _parse_query(dict_query)
     root_table, tables = _build_join_hierarchy()
@@ -30,19 +26,6 @@ def generate_sql_query(query: bytes) -> str:
                 "completed"
                 )
     return sql_query
-
-
-def _from_json_to_dict(query: bytes) -> Dict:
-    logger.info(f"Deserializing the input json query {query}")
-    try:
-        dict_query = json.loads(query)
-    except json.JSONDecodeError as json_decode_err:
-        raise DeserializeJSONQueryError(query) from json_decode_err
-    else:
-        if not isinstance(dict_query, Dict):
-            raise DeserializeJSONQueryError(query)
-        logger.info("Query deserialization successfully completed")
-        return dict_query
 
 
 def _parse_query(query: Dict) -> Tuple[

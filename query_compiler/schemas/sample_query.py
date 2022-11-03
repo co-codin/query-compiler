@@ -1,6 +1,4 @@
-import json
-
-SAMPLE_QUERY = json.dumps({
+SAMPLE_QUERY = {
     "attributes": [
         {
             "field": "patient.age",
@@ -41,14 +39,14 @@ SAMPLE_QUERY = json.dumps({
         "alias": "appointments",
         "value": 5
     },
-})
+}
 
 
-SAMPLE_QUERY_GRAPH = json.dumps({
+SAMPLE_QUERY_GRAPH = {
     "attributes": [
         {"field": "case.biz_key"},
         {"field": "case.sat.open_date"},
         {"field": "case.doctor.person.name_sat.family_name"},
         {"field": "case.doctor.person.sat.birth_date"},
     ],
-})
+}

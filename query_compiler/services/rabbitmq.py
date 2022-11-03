@@ -2,6 +2,7 @@ import json
 import pika
 import logging
 
+from uuid import UUID
 from typing import Callable
 
 from query_compiler.configs.settings import settings
@@ -68,7 +69,7 @@ class RabbitMQService:
     def start_consuming(self):
         self._request_channel.start_consuming()
 
-    def publish_sql_query(self, guid: str, sql_query: str):
+    def publish_sql_query(self, guid: UUID, sql_query: str):
         self._query_channel.basic_publish(
             exchange=settings.result_channel_exchange,
             routing_key=settings.result_channel_routing_key,

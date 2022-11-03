@@ -1,29 +1,10 @@
 import pytest
 
 from query_compiler.schemas.filter import BooleanFilter, SimpleFilter
-from query_compiler.services.query_parse import _from_json_to_dict, \
-    _parse_aliases, _parse_attributes, _parse_filter, \
-    _get_missing_attribute_names
-from query_compiler.errors.query_parse_errors import DeserializeJSONQueryError
+from query_compiler.services.query_parse import _parse_aliases, \
+    _parse_attributes, _parse_filter, _get_missing_attribute_names
 from query_compiler.errors.schemas_errors import NoAttributesInInputQuery
 from query_compiler.schemas.attribute import *
-
-
-def test_from_json_to_dict_positive(
-        get_sample_query_json,
-        get_sample_query_dict
-):
-    actual_dict_query = _from_json_to_dict(get_sample_query_json)
-    assert actual_dict_query == get_sample_query_dict
-
-
-@pytest.mark.parametrize(
-    'json_query_in',
-    (b'', b'rubbish', b'[rubbish]' b'(rubbish)', b'10')
-)
-def test_from_json_to_dict_json_decode_error(json_query_in):
-    with pytest.raises(DeserializeJSONQueryError):
-        _from_json_to_dict(json_query_in)
 
 
 def test_parse_aliases_positive(
