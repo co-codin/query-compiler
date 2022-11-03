@@ -1,8 +1,11 @@
 import pytest
 
+from unittest.mock import patch, Mock
+
 from query_compiler.schemas.filter import BooleanFilter, SimpleFilter
 from query_compiler.services.query_parse import _parse_aliases, \
-    _parse_attributes, _parse_filter, _get_missing_attribute_names
+    _parse_attributes, _parse_filter, _get_missing_attribute_names, \
+    _load_missing_attribute_data
 from query_compiler.errors.schemas_errors import NoAttributesInInputQuery
 from query_compiler.schemas.attribute import *
 
@@ -111,7 +114,72 @@ def test_get_missing_attribute_names(
         get_all_attributes, add_not_missing_attrs_to_data_catalog
 ):
     actual_missing_attrs = _get_missing_attribute_names()
-    expected_missing_attrs = (
+    expected_missing_attrs = {
         'missing_field', 'missing_field_from_aggregate'
+
+    }
+    assert set(actual_missing_attrs) == expected_missing_attrs
+
+
+@patch(
+    'query_compiler.schemas.data_catalog.DataCatalog.load_missing_attr_data'
+)
+@patch(
+    'query_compiler.schemas.data_catalog.DataCatalog'
+    '.load_missing_attr_data_list'
+)
+@patch('query_compiler.services.query_parse._get_missing_attribute_names')
+def test_load_missing_attribute_data_no_missing_attrs(
+        mock_get_missing_attribute_names: Mock,
+        mock_load_missing_attr_data_list: Mock,
+        mock_load_missing_attr_data: Mock
+):
+    mock_get_missing_attribute_names.return_value = tuple()
+    _load_missing_attribute_data()
+    assert mock_load_missing_attr_data_list.call_count == 0
+    assert mock_load_missing_attr_data.call_count == 0
+    mock_get_missing_attribute_names.assert_called_once()
+
+
+@patch(
+    'query_compiler.schemas.data_catalog.DataCatalog.load_missing_attr_data'
+)
+@patch(
+    'query_compiler.schemas.data_catalog.DataCatalog'
+    '.load_missing_attr_data_list'
+)
+@patch('query_compiler.services.query_parse._get_missing_attribute_names')
+def test_load_missing_attribute_data_one_missing_attr(
+        mock_get_missing_attribute_names: Mock,
+        mock_load_missing_attr_data_list: Mock,
+        mock_load_missing_attr_data: Mock
+):
+    missing_attributes = ('missing_attribute1',)
+    mock_get_missing_attribute_names.return_value = missing_attributes
+    _load_missing_attribute_data()
+    assert mock_load_missing_attr_data_list.call_count == 0
+    mock_load_missing_attr_data.assert_called_once_with(missing_attributes[0])
+    mock_get_missing_attribute_names.assert_called_once()
+
+
+@patch(
+    'query_compiler.schemas.data_catalog.DataCatalog.load_missing_attr_data'
+)
+@patch(
+    'query_compiler.schemas.data_catalog.DataCatalog'
+    '.load_missing_attr_data_list'
+)
+@patch('query_compiler.services.query_parse._get_missing_attribute_names')
+def test_load_missing_attribute_data_many_missing_attrs(
+        mock_get_missing_attribute_names: Mock,
+        mock_load_missing_attr_data_list: Mock,
+        mock_load_missing_attr_data: Mock
+):
+    missing_attributes = ('missing_attribute1', 'missing_attribute2')
+    mock_get_missing_attribute_names.return_value = missing_attributes
+    _load_missing_attribute_data()
+    assert mock_load_missing_attr_data.call_count == 0
+    mock_load_missing_attr_data_list.assert_called_once_with(
+        missing_attributes
     )
-    assert set(actual_missing_attrs) == set(expected_missing_attrs)
+    mock_get_missing_attribute_names.assert_called_once()
