@@ -120,7 +120,7 @@ def _config_handlers(log_folder: str) -> Tuple[
     json_file_error_handler = TimedRotatingFileHandler(
         filename=f"{log_folder}/errors.json",
         when=settings.time_period_unit,
-        backupCount=settings.backup_count*2,
+        backupCount=settings.backup_count,
         encoding=settings.encoding
     )
 

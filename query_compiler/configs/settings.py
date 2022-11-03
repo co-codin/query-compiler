@@ -12,8 +12,8 @@ class Settings(BaseSettings):
 
     """RabbitMQ constants"""
     mq_connection_string: str = 'amqp://dwh:dwh@rabbit:5672'
-    request_queue: str = 'request_queue'
-    result_queue: str = 'query_queue'
+    request_queue: str = 'compile_tasks'
+    result_queue: str = 'compile_results'
 
     request_channel_is_durable: bool = True
     request_channel_prefetch_count: int = 0
