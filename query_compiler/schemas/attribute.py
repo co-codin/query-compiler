@@ -24,7 +24,8 @@ class Attribute(ABC):
                 return attr
             except KeyError:
                 logger.info(
-                    f"Record {record} couldn't be converted to {class_}"
+                    f"Record {record} couldn't be converted to "
+                    f"{class_.__name__}"
                 )
         raise AttributeConvertError(record)
 

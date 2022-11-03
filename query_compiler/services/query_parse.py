@@ -109,8 +109,6 @@ def _build_join_hierarchy() -> Tuple[Table, List[Relation]]:
         table = attr.table
         if not table.joins:
             root_table = table.name
-        else:
-            root_table = table.joins[-1].related_table
 
         for relation in reversed(table.joins):
             if relation in joined:
