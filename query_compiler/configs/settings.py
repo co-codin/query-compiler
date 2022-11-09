@@ -11,14 +11,17 @@ class Settings(BaseSettings):
     encoding: str = 'utf-8'
 
     """RabbitMQ constants"""
-    mq_connection_string: str = 'amqp://dwh:dwh@rabbit:5672'
+    heartbeat: int = 5
+    connection_attempts: int = 1
+    retry_delay: int = 10
+    mq_connection_string: str = f'amqp://dwh:dwh@rabbit:5672'
     request_queue: str = 'request_queue'
     result_queue: str = 'query_queue'
 
-    request_channel_is_durable: bool = True
+    request_channel_is_durable: bool = False
     request_channel_prefetch_count: int = 0
 
-    result_channel_is_durable: bool = True
+    result_channel_is_durable: bool = False
     result_channel_exchange: str = ''
     result_channel_routing_key: str = 'result'
 
