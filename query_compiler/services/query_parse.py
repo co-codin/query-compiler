@@ -1,6 +1,8 @@
 import logging
 
 from typing import Dict, Tuple, cast, Union, Literal, List
+
+from query_compiler.services.common import deserialize_json_query
 from query_compiler.schemas.attribute import Attribute, Alias, Aggregate, Field
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.schemas.filter import Filter, SimpleFilter, BooleanFilter
@@ -11,10 +13,11 @@ logger = logging.getLogger(__name__)
 _result = []
 
 
-def generate_sql_query(dict_query: Dict) -> str:
+def generate_sql_query(json_query: str) -> str:
     """Function for generating sql query from json query"""
     logger.info("Starting generating SQL query from the json query")
 
+    dict_query = deserialize_json_query(json_query)
     attributes, filter_, groups, having = _parse_query(dict_query)
     root_table, tables = _build_join_hierarchy()
     sql_query = _build_sql_query(
