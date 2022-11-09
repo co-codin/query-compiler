@@ -44,10 +44,10 @@ class RabbitMQService:
 
     def _set_connection(self):
         self._logger.info(
-            f"Setting a connection to the RabbitMQ server with"
-            f"url = {settings.mq_connection_string},"
-            f"heartbeat = {settings.heartbeat},"
-            f"connection attempts = {settings.connection_attempts},"
+            f"Setting a connection to the RabbitMQ server with "
+            f"url = {settings.mq_connection_string}, "
+            f"heartbeat = {settings.heartbeat}, "
+            f"connection attempts = {settings.connection_attempts}, "
             f"retry delay = {settings.retry_delay}"
         )
         self._conn = pika.BlockingConnection(self._conn_params)
@@ -65,7 +65,7 @@ class RabbitMQService:
 
     def _declare_request_queue(self):
         self._logger.info(
-            f"Declaring {settings.request_queue} in the request channel"
+            f"Declaring {settings.request_queue} in the request channel "
             f"with durable = {settings.request_channel_is_durable}"
         )
         self._request_channel.queue_declare(
@@ -75,7 +75,7 @@ class RabbitMQService:
 
     def _declare_result_queue(self):
         self._logger.info(
-            f"Declaring {settings.result_queue} in the result channel"
+            f"Declaring {settings.result_queue} in the result channel "
             f"with durable = {settings.result_channel_is_durable}"
         )
         self._result_channel.queue_declare(

@@ -1,5 +1,5 @@
 from typing import Tuple
-from pydantic import BaseSettings, Field
+from pydantic import BaseSettings
 
 
 class Settings(BaseSettings):
