@@ -1,11 +1,15 @@
+import json
 import pytest
 
 from unittest.mock import patch, Mock
 
 from query_compiler.schemas.filter import BooleanFilter, SimpleFilter
+from query_compiler.schemas.sample_query import SAMPLE_QUERY_GRAPH
+from query_compiler.schemas.table import Relation
 from query_compiler.services.query_parse import _parse_aliases, \
     _parse_attributes, _parse_filter, _get_missing_attribute_names, \
-    _load_missing_attribute_data
+    _load_missing_attribute_data, _build_join_hierarchy, _get_pg_attribute, \
+    _get_pg_filter
 from query_compiler.errors.schemas_errors import NoAttributesInInputQuery
 from query_compiler.schemas.attribute import *
 
@@ -183,3 +187,88 @@ def test_load_missing_attribute_data_many_missing_attrs(
         missing_attributes
     )
     mock_get_missing_attribute_names.assert_called_once()
+
+
+def test_build_join_hierarchy(clear_all_attributes, initiate_data_catalog_attrs):
+    for field in json.loads(SAMPLE_QUERY_GRAPH)['attributes']:
+        Attribute.get(field)
+    root_table, relations = _build_join_hierarchy()
+    expected_relations = (
+        Relation(
+            'dv_raw.case_sat',
+            {
+                'table': 'dv_raw.case_hub',
+                'on': ('_hash_key', '_hash_fkey')
+            }
+        ),
+        Relation(
+            'dv_raw.case_doctor_link',
+            {
+                'table': 'dv_raw.case_hub',
+                'on': ('_hash_key', 'idcase_hash_fkey')
+            }
+        ),
+        Relation(
+            'dv_raw.doctor_person_link',
+            {
+                'table': 'dv_raw.case_doctor_link',
+                'on': ('iddoctor_hash_fkey', 'iddoctor_hash_fkey')
+            }
+        ),
+        Relation(
+            'dv_raw.person_name_sat',
+            {
+                'table': 'dv_raw.doctor_person_link',
+                'on': ('idperson_hash_fkey', '_hash_fkey')
+            }
+        ),
+        Relation(
+            'dv_raw.person_sat',
+            {
+                'table': 'dv_raw.doctor_person_link',
+                'on': ('idperson_hash_fkey', '_hash_fkey')
+            }
+        ),
+    )
+    assert root_table == 'dv_raw.case_hub'
+    assert set(expected_relations) == set(relations)
+
+
+def test_get_pg_attribute_aggregate(
+        get_aggregate, initiate_data_catalog_attrs
+):
+    actual_pg_attribute = _get_pg_attribute(get_aggregate)
+    table = get_aggregate.table
+    db_name = DataCatalog.get_field(get_aggregate.field.id)
+    expected_pg_attribute = f'{get_aggregate.func}({table.name}.{db_name})'
+    assert actual_pg_attribute == expected_pg_attribute
+
+
+def test_get_pg_attribute_field(
+        get_field, initiate_data_catalog_attrs
+):
+    actual_pg_attribute = _get_pg_attribute(get_field)
+    table = get_field.table
+    db_name = DataCatalog.get_field(get_field.id)
+    expected_pg_attribute = f'{table.name}.{db_name}'
+    assert actual_pg_attribute == expected_pg_attribute
+
+
+def test_get_pg_filter_simple(
+        get_simple_filter_record, initiate_data_catalog_attrs
+):
+    simple_filter = SimpleFilter(get_simple_filter_record)
+    actual_pg_filter = _get_pg_filter(simple_filter)
+    expected_pg_filter = f'{_get_pg_attribute(simple_filter.attr)} ' \
+                         f'{simple_filter.operator} {simple_filter.value}'
+    assert actual_pg_filter == expected_pg_filter
+
+
+def test_get_pg_filter_boolean(
+        get_boolean_filter_record, initiate_data_catalog_attrs
+):
+    boolean_filter = BooleanFilter(get_boolean_filter_record)
+    actual_pg_filter = _get_pg_filter(boolean_filter)
+    parts = (f'({_get_pg_filter(part)})' for part in boolean_filter.values)
+    expected_pg_filter = f' {boolean_filter.operator} '.join(parts)
+    assert actual_pg_filter == expected_pg_filter

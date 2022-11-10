@@ -71,6 +71,7 @@ def test_load_missing_attr_data_positive(mock_get_http_session: Mock):
            data_catalog_response
     mock_get_http_session.assert_called_once_with(url)
     mock_get.assert_called_once_with(url, timeout=settings.timeout)
+    mock_json.assert_called_once()
     mock_http_session.close.called_once()
 
 
@@ -126,6 +127,7 @@ def test_load_missing_attr_data_list_positive(mock_get_http_session: Mock):
         data=json.dumps({'attributes': missing_attributes}),
         timeout=settings.timeout
     )
+    mock_json.assert_called_once()
     mock_http_session.close.called_once()
 
 

@@ -1,6 +1,6 @@
 import pytest
 
-from query_compiler.schemas.attribute import Alias, Attribute
+from query_compiler.schemas.attribute import Alias, Attribute, Aggregate, Field
 from query_compiler.schemas.data_catalog import DataCatalog
 
 
@@ -95,3 +95,24 @@ def add_not_missing_attrs_to_data_catalog():
 def get_all_attributes(clear_all_attributes, get_all_attributes_record):
     for attr in get_all_attributes_record:
         Attribute.all_attributes.add(Attribute.get(attr))
+
+
+@pytest.fixture()
+def get_aggregate():
+    return Aggregate(
+        {
+            "aggregate": {
+                "function": "count",
+                "field": "patient.appointment",
+            }
+        }
+    )
+
+
+@pytest.fixture()
+def get_field():
+    return Field(
+        {
+            "field": "patient.age",
+        }
+    )
