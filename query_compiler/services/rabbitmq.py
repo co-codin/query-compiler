@@ -4,8 +4,9 @@ import pika
 import logging
 
 from typing import Callable
-from pika.exceptions import AMQPError, ChannelWrongStateError, \
-    ConnectionWrongStateError
+from pika.exceptions import (
+    AMQPError, ChannelWrongStateError, ConnectionWrongStateError
+)
 
 from query_compiler.configs.settings import settings
 
