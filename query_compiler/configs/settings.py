@@ -18,10 +18,10 @@ class Settings(BaseSettings):
     request_queue: str = 'request_queue'
     result_queue: str = 'query_queue'
 
-    request_channel_is_durable: bool = False
+    request_channel_is_durable: bool = True
     request_channel_prefetch_count: int = 0
 
-    result_channel_is_durable: bool = False
+    result_channel_is_durable: bool = True
     result_channel_exchange: str = ''
     result_channel_routing_key: str = 'result'
 
@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     data_catalog_url: str = "http://data_catalog"
     data_catalog_port: int = 8000
     retries: int = 5
-    timeout: int = 1
+    timeout: int = 10
     retry_status_list: Tuple[int, ...] = (429, 500, 502, 503, 504)
     retry_method_list: Tuple[str, ...] = ('GET',)
 
