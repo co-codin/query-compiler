@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     """RabbitMQ constants"""
     heartbeat: int = 5
-    connection_attempts: int = 1
+    connection_attempts: int = 5
     retry_delay: int = 10
     mq_connection_string: str = f'amqp://dwh:dwh@rabbit:5672'
     request_queue: str = 'request_queue'
