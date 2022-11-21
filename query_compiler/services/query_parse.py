@@ -2,15 +2,15 @@ import logging
 
 from typing import Dict, Tuple, cast, Union, Literal, List
 
-from query_compiler.services.common import deserialize_json_query
+from query_compiler.utils.parse_utils import deserialize_json_query
 from query_compiler.schemas.attribute import Attribute, Alias, Aggregate, Field
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.schemas.filter import Filter, SimpleFilter, BooleanFilter
 from query_compiler.schemas.table import Table, Relation
 from query_compiler.errors.schemas_errors import NoAttributesInInputQuery
+from query_compiler.errors.query_parse_errors import NoRootTable
 
 logger = logging.getLogger(__name__)
-_result = []
 
 
 def generate_sql_query(json_query: str) -> str:
@@ -111,13 +111,15 @@ def _build_join_hierarchy() -> Tuple[Table, List[Relation]]:
     for attr in Attribute.all_attributes:
         table = attr.table
         if not table.joins:
-            root_table = table.name
+            root_table = table
 
         for relation in reversed(table.joins):
             if relation in joined:
                 continue
             relations.append(relation)
             joined.add(relation)
+    if root_table is None:
+        raise NoRootTable()
 
     logger.info("Join hierarchy building successfully completed")
     return root_table, relations
@@ -135,15 +137,19 @@ def _build_sql_query(
     schemas objects"""
     logger.info("Starting building SQL query")
 
-    _build_attributes_clause(attributes, key='select')
-    _build_from_clause(root_table, tables)
-    _build_filter_clause(filter_, key='where')
-    _build_attributes_clause(groups, key='group by')
-    _build_filter_clause(having, key='having')
+    select = _build_attributes_clause(attributes, key='select')
+    tables = _build_from_clause(root_table, tables)
+    where = _build_filter_clause(filter_, key='where')
+    group_by = _build_attributes_clause(groups, key='group by')
+    having = _build_filter_clause(having, key='having')
+    sql_query = _piece_sql_statements_together(select, tables, where, group_by, having)
 
-    result = ' '.join(_result)
     logger.info("SQL query building successfully completed")
-    return result
+    return sql_query
+
+
+def _piece_sql_statements_together(*args):
+    return ' '.join(filter(lambda item: item is not None, args))
 
 
 def _build_attributes_clause(
@@ -152,29 +158,31 @@ def _build_attributes_clause(
 ):
     """Builds select and group by clauses"""
     if attributes:
-        _result.append(key)
         attributes_to_append = (_get_pg_attribute(attr) for attr in attributes)
-        _result.append(', '.join(attributes_to_append))
+        pg_attributes = ', '.join(attributes_to_append)
+        return f"{key} {pg_attributes}"
 
 
 def _build_from_clause(root_table: Table, relations: List[Relation]):
     """Builds from and join clauses"""
-    _result.append(f'from {root_table}')
-    for rel in relations:
-        _result.append(f'join {rel.table} on '
-                       f'{rel.related_table}.{rel.related_key} = '
-                       f'{rel.table}.{rel.key}')
+    from_to_append = (
+        f'join {rel.table} on '
+        f'{rel.related_table}.{rel.related_key} = '
+        f'{rel.table}.{rel.key}'
+        for rel in relations
+    )
+    from_tables = ', '.join(from_to_append)
+    return f'from {root_table.name} {from_tables}'
 
 
 def _build_filter_clause(filter_: Filter, key: Literal['where', 'having']):
     """Builds where and having clauses"""
     if filter_:
-        _result.append(key)
-        _result.append(_get_pg_filter(filter_))
+        pg_filter = _get_pg_filter(filter_)
+        return f"{key} {pg_filter}"
 
 
 def _clear():
-    _result.clear()
     Attribute.clear()
     Alias.clear()
 

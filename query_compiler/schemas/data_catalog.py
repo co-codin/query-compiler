@@ -5,8 +5,7 @@ from typing import List
 from requests import RequestException
 from requests.adapters import HTTPAdapter, Retry
 
-from query_compiler.errors.schemas_errors import \
-    HTTPErrorFromDataCatalog
+from query_compiler.errors.schemas_errors import HTTPErrorFromDataCatalog
 from query_compiler.schemas.table import Table
 from query_compiler.configs.settings import settings
 

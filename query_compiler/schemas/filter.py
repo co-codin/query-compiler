@@ -63,13 +63,13 @@ class SimpleFilter(Filter):
 
     @value.setter
     def value(self, value):
-        type_name = self._get_type_name()
+        attr_type_name = self._get_attr_type_name()
         try:
-            self._value = self._type_names_to_types[type_name](value)
+            self._value = self._type_names_to_types[attr_type_name](value)
         except (TypeError, ValueError) as exc:
-            raise FilterValueCastError(type_name, value) from exc
+            raise FilterValueCastError(attr_type_name, value) from exc
 
-    def _get_type_name(self) -> str:
+    def _get_attr_type_name(self) -> str:
         attr = self.attr.attr
         if isinstance(attr, Aggregate):
             """

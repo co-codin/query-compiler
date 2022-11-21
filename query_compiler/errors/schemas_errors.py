@@ -20,7 +20,7 @@ class FilterConvertError(QueryCompilerError):
 class FilterValueCastError(QueryCompilerError):
     def __init__(self, type_name, value):
         super().__init__(
-            f"Couldn't cast SimpleFilter value {value} to {type_name}"
+            f"Couldn't cast SimpleFilter attribute value {value} to {type_name}"
         )
 
 

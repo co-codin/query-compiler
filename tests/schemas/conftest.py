@@ -86,37 +86,33 @@ def get_aliases_dict_value_records_with_all_aggr_funcs():
 
 @pytest.fixture()
 def get_simple_filters_with_fields_of_all_types():
-    return (
-        {
+    return {
+        'int': {
             "operator": "<",
             "field": "patient.age",
             "value": '35'
         },
-
-        {
+        'float': {
             "operator": "<",
             "field": "patient.age",
             "value": '35.'
         },
-
-        {
+        'str': {
             "operator": "<",
             "field": "patient.age",
             "value": 'string'
         },
-
-        {
+        'bool': {
             "operator": "<",
             "field": "patient.age",
             "value": 'True'
         },
-
-        {
+        'date': {
             "operator": "<",
             "field": "patient.age",
             "value": '2022-08-01'
-        },
-    )
+        }
+    }
 
 
 @pytest.fixture()
