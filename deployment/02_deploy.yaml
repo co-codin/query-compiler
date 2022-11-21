@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: dwh-query-compiler
+    app: query-compiler-web
+  name: query-compiler
+#  namespace: dwh-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dwh-query-compiler
+      app: query-compiler-web  
+      tier: frontend
+      track: stable      
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dwh-query-compiler
+        app: query-compiler-web  
+        tier: frontend
+        track: stable      
+    spec:
+      containers:
+      - env:
+        - name: LOG_DIR
+          value: /var/logs
+        - name: SERVICE_PORT
+          value: "8888"
+        - name: HEARTBEAT
+          value: "5"
+        - name: CONNECTION_ATTEMPTS
+          value: "2"
+        - name: RETRY_DELAYS
+          value: "10"
+        - name: MQ_CONNECTION_STRING
+          value: amqp://dwh:dwh@10.50.4.110:5672/vhdev
+        - name: TASK_BROKER_HOST
+          value: 10.50.4.110
+        - name: REQUEST_QUEUE
+          value: compile_tasks
+        - name: RESULT_QUEUE
+          value: compile_results
+        - name: RESULT_CHANNEL_EXCHANGE
+          value: query_compile
+        - name: RESULT_CHANNEL_ROUTING_KEY
+          value: result
+        image: 10.50.4.110:5000/query-compiler:dev
+        imagePullPolicy: Always
+        name: query-compiler
+        ports:
+        - containerPort: 8888
+      imagePullSecrets:
+        - name: repositorycred
+#      restartPolicy: OnFailure
+
