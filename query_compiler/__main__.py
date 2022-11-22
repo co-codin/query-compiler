@@ -9,13 +9,14 @@ from query_compiler.services.query_parse import generate_sql_query
 
 from query_compiler.errors.base_error import QueryCompilerError
 from query_compiler.errors.schemas_errors import HTTPErrorFromDataCatalog
-from query_compiler.errors.rabbit_mq_errors import NoAMQPConnectionError
 
 config_logger()
 logger = logging.getLogger(__name__)
 
 
-def _run_query_compiler():
+def main():
+    logger.info("Starting QueryCompiler service")
+
     with RabbitMQService() as rabbit_mq:
         def callback(
                 ch: pika.channel.Channel,
@@ -42,13 +43,6 @@ def _run_query_compiler():
         rabbit_mq.set_callback_function(callback)
         rabbit_mq.start_consuming()
 
-
-def main():
-    logger.info("Starting QueryCompiler service")
-    try:
-        _run_query_compiler()
-    except NoAMQPConnectionError as no_amqp_conn:
-        logger.error(no_amqp_conn)
     logger.info("Shutting down QueryCompiler service")
 
 

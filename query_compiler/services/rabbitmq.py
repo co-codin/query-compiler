@@ -31,13 +31,16 @@ class RabbitMQService:
         try:
             self._set_connection()
         except (RuntimeError, gaierror):
-            raise NoAMQPConnectionError(settings.mq_connection_string)
-        self._set_request_channel()
-        self._set_result_channel()
+            self._logger.error(
+                NoAMQPConnectionError(settings.mq_connection_string)
+            )
+        else:
+            self._set_request_channel()
+            self._set_result_channel()
 
-        self._declare_request_queue()
-        self._declare_result_queue()
-        return self
+            self._declare_request_queue()
+            self._declare_result_queue()
+            return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._close_channels()
