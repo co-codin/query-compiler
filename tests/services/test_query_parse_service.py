@@ -10,7 +10,7 @@ from query_compiler.services.query_parse import (
     _parse_aliases, _parse_attributes, _parse_filter,
     _get_missing_attribute_names, _load_missing_attribute_data,
     _build_join_hierarchy, _get_pg_attribute, _get_pg_filter,
-    _build_attributes_clause, _build_from_clause, _build_filter_clause, _clear,
+    _build_attributes_clause, _build_from_clause, _build_filter_clause, clear,
     _piece_sql_statements_together
 )
 from query_compiler.errors.schemas_errors import NoAttributesInInputQuery
@@ -249,7 +249,7 @@ def test_clear(get_aliases_record, get_attributes_record):
     _parse_aliases(get_aliases_record)
     _parse_attributes(get_attributes_record, key='attributes')
     _parse_attributes(get_attributes_record, key='group')
-    _clear()
+    clear()
     assert len(Alias.all_aliases) == 0
     assert len(Attribute.all_attributes) == 0
 

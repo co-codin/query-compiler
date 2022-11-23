@@ -4,7 +4,7 @@ import pika.channel
 from query_compiler.configs.logger_config import config_logger
 from query_compiler.utils.parse_utils import get_guid_and_query_from_json
 from query_compiler.services.rabbitmq import RabbitMQService
-from query_compiler.services.query_parse import generate_sql_query
+from query_compiler.services.query_parse import generate_sql_query, clear
 from query_compiler.errors.base_error import QueryCompilerError
 
 config_logger()
@@ -32,6 +32,8 @@ def main():
                     delivery_tag=method.delivery_tag,
                     requeue=False
                 )
+            finally:
+                clear()
 
         rabbit_mq.set_callback_function(callback)
         rabbit_mq.start_consuming()

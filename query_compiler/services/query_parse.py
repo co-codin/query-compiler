@@ -23,7 +23,6 @@ def generate_sql_query(json_query: str) -> str:
     sql_query = _build_sql_query(
         attributes, root_table, tables, filter_, groups, having
     )
-    _clear()
 
     logger.info("Generating SQL query from the json query successfully "
                 "completed"
@@ -182,7 +181,7 @@ def _build_filter_clause(filter_: Filter, key: Literal['where', 'having']):
         return f"{key} {pg_filter}"
 
 
-def _clear():
+def clear():
     Attribute.clear()
     Alias.clear()
 
