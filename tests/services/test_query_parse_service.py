@@ -5,7 +5,6 @@ from unittest.mock import patch, Mock
 
 from query_compiler.schemas.filter import BooleanFilter, SimpleFilter
 from query_compiler.schemas.sample_query import SAMPLE_QUERY_GRAPH
-from query_compiler.schemas.table import Table
 from query_compiler.services.query_parse import (
     _parse_aliases, _parse_attributes, _parse_filter,
     _get_missing_attribute_names, _load_missing_attribute_data,
@@ -154,9 +153,9 @@ def test_load_missing_attribute_data_many_missing_attrs(
 def test_build_join_hierarchy_positive(clear_all_attributes, get_relations, initiate_data_catalog_attrs):
     for field in json.loads(SAMPLE_QUERY_GRAPH)['attributes']:
         Attribute.get(field)
-    root_table, relations = _build_join_hierarchy()
+    root_table_name, relations = _build_join_hierarchy()
     expected_relations = get_relations
-    assert root_table == Table({'name': 'dv_raw.case_hub'})
+    assert root_table_name == 'dv_raw.case_hub'
     assert set(expected_relations) == set(relations)
 
 
@@ -213,14 +212,14 @@ def test_build_attributes_clause_empty_attrs(key):
 
 def test_build_from_clause(get_from_clause_and_root_table, get_relations, initiate_data_catalog_attrs):
     expected_output = get_from_clause_and_root_table['from_clause']
-    actual_output = _build_from_clause(get_from_clause_and_root_table['root_table'], get_relations)
+    actual_output = _build_from_clause(get_from_clause_and_root_table['root_table_name'], get_relations)
     assert expected_output == actual_output
 
 
 def test_build_from_clause_empty_relations():
-    root_table = Table({'name': 'dv_raw.case_hub'})
+    root_table = 'dv_raw.case_hub'
     actual_output = _build_from_clause(root_table, [])
-    expected_output = f'from {root_table.name} '
+    expected_output = f'from {root_table} '
     assert actual_output == expected_output
 
 

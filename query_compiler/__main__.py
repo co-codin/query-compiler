@@ -27,7 +27,7 @@ def main():
                 rabbit_mq.publish_sql_query(guid, sql_query)
                 ch.basic_ack(delivery_tag=method.delivery_tag)
             except QueryCompilerError as exc:
-                logger.exception(str(exc))
+                logger.error(str(exc))
                 ch.basic_reject(
                     delivery_tag=method.delivery_tag,
                     requeue=False

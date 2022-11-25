@@ -2,7 +2,7 @@ import pytest
 
 from query_compiler.schemas.attribute import Alias, Attribute, Aggregate, Field
 from query_compiler.schemas.filter import SimpleFilter, BooleanFilter
-from query_compiler.schemas.table import Relation, Table
+from query_compiler.schemas.table import Relation
 
 
 @pytest.fixture()
@@ -187,7 +187,7 @@ def fill_attributes():
 
 @pytest.fixture()
 def get_from_clause_and_root_table(fill_attributes):
-    root_table = Table({'name': 'dv_raw.case_hub'})
+    root_table_name = 'dv_raw.case_hub'
     join_statement = 'join dv_raw.case_doctor_link on ' \
                   'dv_raw.case_hub._hash_key = dv_raw.case_doctor_link.idcase_hash_fkey, ' \
                   'join dv_raw.doctor_person_link on ' \
@@ -199,8 +199,8 @@ def get_from_clause_and_root_table(fill_attributes):
                   'join dv_raw.case_sat on ' \
                   'dv_raw.case_hub._hash_key = dv_raw.case_sat._hash_fkey'
     return {
-        'root_table': root_table,
-        'from_clause': f"from {root_table.name} {join_statement}"
+        'root_table_name': root_table_name,
+        'from_clause': f"from {root_table_name} {join_statement}"
     }
 
 

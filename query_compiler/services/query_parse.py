@@ -6,9 +6,11 @@ from query_compiler.utils.parse_utils import deserialize_json_query
 from query_compiler.schemas.attribute import Attribute, Alias, Aggregate, Field
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.schemas.filter import Filter, SimpleFilter, BooleanFilter
-from query_compiler.schemas.table import Table, Relation
+from query_compiler.schemas.table import Relation
 from query_compiler.errors.schemas_errors import NoAttributesInInputQuery
-from query_compiler.errors.query_parse_errors import NoRootTable
+from query_compiler.errors.query_parse_errors import (
+    NoRootTable, NotOneRootTable
+)
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +21,9 @@ def generate_sql_query(json_query: str) -> str:
 
     dict_query = deserialize_json_query(json_query)
     attributes, filter_, groups, having = _parse_query(dict_query)
-    root_table, tables = _build_join_hierarchy()
+    root_table_name, tables = _build_join_hierarchy()
     sql_query = _build_sql_query(
-        attributes, root_table, tables, filter_, groups, having
+        attributes, root_table_name, tables, filter_, groups, having
     )
 
     logger.info("Generating SQL query from the json query successfully "
@@ -101,32 +103,36 @@ def _parse_filter(
         logger.info(f"There's no {key} in the query {query}")
 
 
-def _build_join_hierarchy() -> Tuple[Table, List[Relation]]:
+def _build_join_hierarchy() -> Tuple[str, List[Relation]]:
     """Function for building join hierarchy of the json query"""
     logger.info("Starting building join hierarchy")
-    root_table = None
+    root_table_name = set()
     joined = set()
     relations = []
     for attr in Attribute.all_attributes:
         table = attr.table
         if not table.joins:
-            root_table = table
+            root_table_name.add(table.name)
+        else:
+            root_table_name.add(table.joins[-1].related_table)
 
         for relation in reversed(table.joins):
             if relation in joined:
                 continue
             relations.append(relation)
             joined.add(relation)
-    if root_table is None:
+    if len(root_table_name) == 0:
         raise NoRootTable()
+    elif len(root_table_name) > 1:
+        raise NotOneRootTable(root_table_name)
 
     logger.info("Join hierarchy building successfully completed")
-    return root_table, relations
+    return root_table_name.pop(), relations
 
 
 def _build_sql_query(
         attributes: List[Attribute],
-        root_table: Table,
+        root_table_name: str,
         tables: List[Relation],
         filter_: Filter,
         groups: List[Attribute],
@@ -137,7 +143,7 @@ def _build_sql_query(
     logger.info("Starting building SQL query")
 
     select = _build_attributes_clause(attributes, key='select')
-    tables = _build_from_clause(root_table, tables)
+    tables = _build_from_clause(root_table_name, tables)
     where = _build_filter_clause(filter_, key='where')
     group_by = _build_attributes_clause(groups, key='group by')
     having = _build_filter_clause(having, key='having')
@@ -162,7 +168,7 @@ def _build_attributes_clause(
         return f"{key} {pg_attributes}"
 
 
-def _build_from_clause(root_table: Table, relations: List[Relation]):
+def _build_from_clause(root_table_name: str, relations: List[Relation]):
     """Builds from and join clauses"""
     from_to_append = (
         f'join {rel.table} on '
@@ -171,7 +177,7 @@ def _build_from_clause(root_table: Table, relations: List[Relation]):
         for rel in relations
     )
     from_tables = ', '.join(from_to_append)
-    return f'from {root_table.name} {from_tables}'
+    return f'from {root_table_name} {from_tables}'
 
 
 def _build_filter_clause(filter_: Filter, key: Literal['where', 'having']):
