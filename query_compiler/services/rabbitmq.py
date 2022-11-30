@@ -31,12 +31,10 @@ class RabbitMQService:
         self._query_channel = self._conn.channel()
 
         self._request_channel.queue_declare(
-            settings.request_queue,
-            settings.request_channel_is_durable
+            settings.request_queue
         )
         self._query_channel.queue_declare(
-            settings.result_queue,
-            settings.result_channel_is_durable
+            settings.result_queue
         )
 
         self._request_channel.basic_qos(
