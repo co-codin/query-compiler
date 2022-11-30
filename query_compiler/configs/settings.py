@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     log_name: str = "query_compiler.log"
 
     """RabbitMQ constants"""
-    mq_connection_string: str = 'amqp://dwh:dwh@rabbit:5672'
+    mq_connection_string: str = 'amqp://dwh:dwh@rabbit.lan:5672'
     request_queue: str = 'compile_tasks'
     result_queue: str = 'compile_results'
 
@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     result_channel_routing_key: str = 'result'
 
     """DataCatalog constants"""
-    data_catalog_url: str = "http://data_catalog"
+    data_catalog_url: str = "http://data-catalog.lan"
     data_catalog_port: int = 8000
     retries: int = 5
     timeout: int = 1

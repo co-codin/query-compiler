@@ -5,11 +5,9 @@ RUN pip install --no-cache-dir -U pip
 COPY requirements.txt /tmp/
 RUN pip install -r /tmp/requirements.txt
 
-RUN mkdir -p /usr/local/app/
-WORKDIR /usr/local/app/
-COPY query_compiler ./query_compiler/
-RUN mkdir -p /var/logs/
-RUN mkdir logs
+COPY query_compiler/ /app/query_compiler/
 
 EXPOSE $SERVICE_PORT
+
+WORKDIR /app
 CMD ["python3", "-m", "query_compiler"]
