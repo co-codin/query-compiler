@@ -13,6 +13,3 @@ RUN mkdir logs
 
 EXPOSE $SERVICE_PORT
 CMD ["python3", "-m", "query_compiler"]
-
-#CMD ["uvicorn", "app.main:app" , "--host", "0.0.0.0", "--port", "8000"]
-#CMD ["python3","-m","app.main.py"]
