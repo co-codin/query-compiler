@@ -53,5 +53,9 @@ spec:
         - containerPort: 8888
       imagePullSecrets:
         - name: repositorycred
+      hostAliases:
+        - ip: 127.0.0.1        
+          hostnames:
+          - query-compiler.lan             
 #      restartPolicy: OnFailure
 
