@@ -14,6 +14,13 @@ _result = []
 
 
 def generate_sql_query(query: bytes) -> str:
+    try:
+        return _generate_sql_query(query)
+    finally:
+        _clear()
+
+
+def _generate_sql_query(query: bytes) -> str:
     """Function for generating sql query from json query"""
     logger.info("Starting generating SQL query from the json query")
 

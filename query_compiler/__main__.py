@@ -23,6 +23,7 @@ def main():
                 properties: pika.BasicProperties,
                 body: bytes
         ):
+            guid = None
             try:
                 payload = json.loads(body)
                 guid = payload['guid']
@@ -39,6 +40,8 @@ def main():
                     delivery_tag=method.delivery_tag,
                     requeue=False
                 )
+                if guid:
+                    rabbit_mq.publish_sql_error(guid, 'Failed to compile')
 
         rabbit_mq.set_callback_function(callback)
         rabbit_mq.start_consuming()

@@ -68,13 +68,26 @@ class RabbitMQService:
         self._request_channel.start_consuming()
 
     def publish_sql_query(self, guid: str, sql_query: str):
+        self._publish_status(guid, {
+            'query': sql_query,
+            'status': 'compiled',
+        })
+
+    def publish_sql_error(self, guid: str, error: str):
+        self._publish_status(guid, {
+            'error': error,
+            'status': 'error',
+        })
+
+    def _publish_status(self, guid: str, data: dict):
+        payload = {
+            'guid': guid
+        }
+        payload.update(data)
         self._query_channel.basic_publish(
             exchange=settings.result_channel_exchange,
             routing_key=settings.result_channel_routing_key,
-            body=json.dumps({
-                'guid': guid,
-                'query': sql_query
-            }).encode('utf-8'),
+            body=json.dumps(payload).encode('utf-8'),
             properties=pika.BasicProperties(
                 delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE
             )
