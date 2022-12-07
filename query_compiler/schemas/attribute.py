@@ -5,7 +5,7 @@ from abc import ABC
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.errors.schemas_errors import AttributeConvertError
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 class Attribute(ABC):
@@ -23,7 +23,7 @@ class Attribute(ABC):
                 cls.all_attributes.add(attr)
                 return attr
             except KeyError:
-                logger.info(
+                LOG.info(
                     f"Record {record} couldn't be converted to "
                     f"{class_.__name__}"
                 )

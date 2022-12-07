@@ -12,12 +12,12 @@ from query_compiler.errors.query_parse_errors import (
     NoRootTable, NotOneRootTable
 )
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 def generate_sql_query(json_query: str) -> str:
     """Function for generating sql query from json query"""
-    logger.info("Starting generating SQL query from the json query")
+    LOG.info("Starting generating SQL query from the json query")
 
     dict_query = deserialize_json_query(json_query)
     attributes, filter_, groups, having = _parse_query(dict_query)
@@ -26,9 +26,9 @@ def generate_sql_query(json_query: str) -> str:
         attributes, root_table_name, tables, filter_, groups, having
     )
 
-    logger.info("Generating SQL query from the json query successfully "
+    LOG.info("Generating SQL query from the json query successfully "
                 "completed"
-                )
+             )
     return sql_query
 
 
@@ -39,7 +39,7 @@ def _parse_query(query: Dict) -> Tuple[
     Filter
 ]:
     """Function for parsing json query and creating schemas objects"""
-    logger.info(f"Starting parsing the following query {query}")
+    LOG.info(f"Starting parsing the following query {query}")
 
     _parse_aliases(query)
     attributes = _parse_attributes(query, key='attributes')
@@ -50,7 +50,7 @@ def _parse_query(query: Dict) -> Tuple[
     filter_ = _parse_filter(query, key='filter')
     having = _parse_filter(query, key='having')
 
-    logger.info(f"Query parsing successfully completed")
+    LOG.info(f"Query parsing successfully completed")
     return attributes, filter_, groups, having
 
 
@@ -76,7 +76,7 @@ def _parse_aliases(query: Dict):
         for alias, record in query['aliases'].items():
             Alias.all_aliases[alias] = Attribute.get(record)
     except KeyError:
-        logger.info(f"There's no aliases in the query {query}")
+        LOG.info(f"There's no aliases in the query {query}")
 
 
 def _parse_attributes(
@@ -89,7 +89,7 @@ def _parse_attributes(
     except KeyError:
         if key == 'attributes':
             raise NoAttributesInInputQuery(query)
-        logger.info(f"There's no {key} in the query {query}")
+        LOG.info(f"There's no {key} in the query {query}")
 
 
 def _parse_filter(
@@ -100,12 +100,12 @@ def _parse_filter(
     try:
         return Filter.get(query[key])
     except KeyError:
-        logger.info(f"There's no {key} in the query {query}")
+        LOG.info(f"There's no {key} in the query {query}")
 
 
 def _build_join_hierarchy() -> Tuple[str, List[Relation]]:
     """Function for building join hierarchy of the json query"""
-    logger.info("Starting building join hierarchy")
+    LOG.info("Starting building join hierarchy")
     root_table_name = set()
     joined = set()
     relations = []
@@ -126,7 +126,7 @@ def _build_join_hierarchy() -> Tuple[str, List[Relation]]:
     elif len(root_table_name) > 1:
         raise NotOneRootTable(root_table_name)
 
-    logger.info("Join hierarchy building successfully completed")
+    LOG.info("Join hierarchy building successfully completed")
     return root_table_name.pop(), relations
 
 
@@ -140,7 +140,7 @@ def _build_sql_query(
 ) -> str:
     """Function for building sql query for a particular database from
     schemas objects"""
-    logger.info("Starting building SQL query")
+    LOG.info("Starting building SQL query")
 
     select = _build_attributes_clause(attributes, key='select')
     tables = _build_from_clause(root_table_name, tables)
@@ -149,7 +149,7 @@ def _build_sql_query(
     having = _build_filter_clause(having, key='having')
     sql_query = _piece_sql_statements_together(select, tables, where, group_by, having)
 
-    logger.info("SQL query building successfully completed")
+    LOG.info("SQL query building successfully completed")
     return sql_query
 
 

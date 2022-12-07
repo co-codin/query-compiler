@@ -6,12 +6,13 @@ from typing import Callable
 
 from query_compiler.configs.settings import settings
 
+LOG = logging.getLogger(__name__)
+
 
 class RabbitMQService:
     def __init__(self):
         """Set connection parameters to RabbitMQ task broker"""
         self._conn_params = pika.URLParameters(settings.mq_connection_string)
-        self._logger = logging.getLogger(__name__)
 
     def __enter__(self):
         """

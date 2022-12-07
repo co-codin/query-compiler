@@ -8,7 +8,7 @@ from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.errors.schemas_errors import FilterConvertError, \
     FilterValueCastError
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 class Filter(ABC):
@@ -18,7 +18,7 @@ class Filter(ABC):
             try:
                 return class_(record)
             except (KeyError, ValueError):
-                logger.info(
+                LOG.info(
                     f"Record {record} couldn't be converted to "
                     f"{class_.__name__}"
                 )

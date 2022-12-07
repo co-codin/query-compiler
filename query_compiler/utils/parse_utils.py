@@ -6,7 +6,7 @@ from typing import Dict, Tuple
 from query_compiler.errors.query_parse_errors import DeserializeJSONQueryError
 
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 def deserialize_json_query(json_query: str) -> Dict:
@@ -20,12 +20,12 @@ def deserialize_json_query(json_query: str) -> Dict:
 
 
 def get_guid_and_query_from_json(query: str) -> Tuple[str, str]:
-    logger.info(f"Deserializing an input request {query}")
+    LOG.info(f"Deserializing an input request {query}")
     try:
         payload = deserialize_json_query(query)
         guid, json_query = payload['guid'], payload['query']
     except KeyError as key_err:
         raise DeserializeJSONQueryError(query) from key_err
     else:
-        logger.info("Request deserialization successfully completed")
+        LOG.info("Request deserialization successfully completed")
         return guid, json_query
