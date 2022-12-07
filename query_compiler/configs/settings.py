@@ -4,29 +4,27 @@ from pydantic import BaseSettings
 
 class Settings(BaseSettings):
     """Logging constants"""
-    log_dir: str = 'logs'
-    time_period_unit: str = 'D'
-    backup_count: int = 5
-    date_time_format: str = "%Y-%m-%dT%H:%M:%S"
-    encoding: str = 'utf-8'
+    debug: bool = False
+    log_dir: str = "/var/log/n3dwh/"
+    log_name: str = "query_compiler.log"
 
     """RabbitMQ constants"""
     heartbeat: int = 5
     connection_attempts: int = 5
     retry_delay: int = 10
-    mq_connection_string: str = f'amqp://dwh:dwh@rabbit:5672'
-    request_queue: str = 'request_queue'
-    result_queue: str = 'query_queue'
+    mq_connection_string: str = 'amqp://dwh:dwh@rabbit.lan:5672'
+    request_queue: str = 'compile_tasks'
+    result_queue: str = 'compile_results'
 
     request_channel_is_durable: bool = True
     request_channel_prefetch_count: int = 0
 
     result_channel_is_durable: bool = True
-    result_channel_exchange: str = ''
+    result_channel_exchange: str = 'query_compile'
     result_channel_routing_key: str = 'result'
 
     """DataCatalog constants"""
-    data_catalog_url: str = "http://data_catalog"
+    data_catalog_url: str = "http://data-catalog.lan"
     data_catalog_port: int = 8000
     retries: int = 5
     timeout: int = 10

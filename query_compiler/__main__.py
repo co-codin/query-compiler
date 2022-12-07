@@ -14,8 +14,12 @@ config_logger()
 logger = logging.getLogger(__name__)
 
 
+config_logger()
+LOG = logging.getLogger(__name__)
+
+
 def main():
-    logger.info("Starting QueryCompiler service")
+    LOG.info("Starting QueryCompiler service")
 
     with RabbitMQService() as rabbit_mq:
         def callback(
@@ -28,8 +32,11 @@ def main():
                 payload = json.loads(body)
                 guid = payload['guid']
                 query = payload['query']
+                LOG.info(f'Received task for {guid}')
                 sql_query = generate_sql_query(query)
+                LOG.info(f'Compiled task {guid}')
                 rabbit_mq.publish_sql_query(guid, sql_query)
+                LOG.info(f'Task {guid} sent to broker')
                 ch.basic_ack(delivery_tag=method.delivery_tag)
             except HTTPErrorFromDataCatalog as data_catalog_exc:
                 logger.error(data_catalog_exc)
@@ -47,4 +54,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e:
+        LOG.exception(f'Failed to run: {e}')
+        raise

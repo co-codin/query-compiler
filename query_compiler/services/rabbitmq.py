@@ -25,7 +25,7 @@ class RabbitMQService:
 
         self._conn: Union[pika.BlockingConnection, None] = None
         self._request_channel: Union[Channel, None] = None
-        self._result_channel: Union[Channel, None] = None
+        self._query_channel: Union[Channel, None] = None
 
     def __enter__(self):
         try:
@@ -63,29 +63,27 @@ class RabbitMQService:
 
     def _set_result_channel(self):
         self._logger.info("Creating a result channel")
-        self._result_channel = self._conn.channel()
+        self._query_channel = self._conn.channel()
 
     def _declare_request_queue(self):
         self._logger.info(
             f"Declaring {settings.request_queue} queue in the request channel"
         )
         self._request_channel.queue_declare(
-            settings.request_queue,
-            settings.request_channel_is_durable
+            settings.request_queue
         )
 
     def _declare_result_queue(self):
         self._logger.info(
             f"Declaring {settings.result_queue} queue in the result channel"
         )
-        self._result_channel.queue_declare(
-            settings.result_queue,
-            settings.result_channel_is_durable
+        self._query_channel.queue_declare(
+            settings.result_queue
         )
 
     def _close_channels(self):
         self._logger.info("Closing request and result channels")
-        for channel in (self._request_channel, self._result_channel):
+        for channel in (self._request_channel, self._query_channel):
             try:
                 if channel is not None:
                     channel.close()
@@ -94,7 +92,7 @@ class RabbitMQService:
                     f"Channel {channel.channel_number} is already closed"
                 )
         self._request_channel = None
-        self._result_channel = None
+        self._query_channel = None
 
     def _close_connection(self):
         self._logger.info(f"Closing the connection")
@@ -123,7 +121,7 @@ class RabbitMQService:
         self._logger.info(
             f"Sending {result_dict} to the {settings.result_queue}"
         )
-        self._result_channel.basic_publish(
+        self._query_channel.basic_publish(
             exchange=settings.result_channel_exchange,
             routing_key=settings.result_channel_routing_key,
             body=json.dumps(result_dict).encode('utf-8'),
