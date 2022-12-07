@@ -34,7 +34,7 @@ def main():
                 rabbit_mq.publish_sql_query(guid, sql_query)
                 LOG.info(f'Task {guid} sent to broker')
                 ch.basic_ack(delivery_tag=method.delivery_tag)
-            except QueryCompilerError as exc:
+            except Exception as exc:
                 logger.exception(str(exc))
                 ch.basic_reject(
                     delivery_tag=method.delivery_tag,
