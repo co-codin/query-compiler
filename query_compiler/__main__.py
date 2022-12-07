@@ -5,7 +5,6 @@ import pika.channel
 from query_compiler.configs.logger_config import config_logger
 from query_compiler.services.rabbitmq import RabbitMQService
 from query_compiler.services.query_parse import generate_sql_query
-from query_compiler.errors.base_error import QueryCompilerError
 
 
 config_logger()
