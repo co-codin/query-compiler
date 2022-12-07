@@ -2,7 +2,6 @@ import json
 import pika
 import logging
 
-from uuid import UUID
 from typing import Callable
 
 from query_compiler.configs.settings import settings
@@ -28,15 +27,14 @@ class RabbitMQService:
         self._conn = pika.BlockingConnection(self._conn_params)
 
         self._request_channel = self._conn.channel()
-        self._result_channel = self._conn.channel()
+        self._query_channel = self._conn.channel()
 
         self._request_channel.queue_declare(
-            settings.request_queue,
-            settings.request_channel_is_durable
+            settings.request_queue
         )
-        self._result_channel.queue_declare(
-            settings.result_queue,
-            settings.result_channel_is_durable
+
+        self._query_channel.queue_declare(
+            settings.result_queue
         )
 
         self._request_channel.basic_qos(
@@ -58,7 +56,7 @@ class RabbitMQService:
         Close the connection
         """
         self._request_channel.close()
-        self._result_channel.close()
+        self._query_channel.close()
         self._conn.close()
 
     def set_callback_function(self, callback: Callable):
@@ -70,7 +68,7 @@ class RabbitMQService:
         self._request_channel.start_consuming()
 
     def publish_sql_query(self, guid: str, sql_query: str):
-        self._result_channel.basic_publish(
+        self._query_channel.basic_publish(
             exchange=settings.result_channel_exchange,
             routing_key=settings.result_channel_routing_key,
             body=json.dumps({
