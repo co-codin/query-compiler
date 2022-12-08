@@ -20,3 +20,10 @@ class NotOneRootTable(QueryCompilerError):
         super().__init__(
             f"More than one root table was built: {root_table_name}"
         )
+
+
+class GroupByError(QueryCompilerError):
+    def __init__(self):
+        super().__init__(
+            "Group records are not matched up with attributes records"
+        )

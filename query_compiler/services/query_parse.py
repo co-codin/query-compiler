@@ -9,7 +9,7 @@ from query_compiler.schemas.filter import Filter, SimpleFilter, BooleanFilter
 from query_compiler.schemas.table import Relation
 from query_compiler.errors.schemas_errors import NoAttributesInInputQuery
 from query_compiler.errors.query_parse_errors import (
-    NoRootTable, NotOneRootTable
+    NoRootTable, NotOneRootTable, GroupByError
 )
 
 LOG = logging.getLogger(__name__)
@@ -42,8 +42,8 @@ def _parse_query(query: Dict) -> Tuple[
     LOG.info(f"Starting parsing the following query {query}")
 
     _parse_aliases(query)
-    attributes = _parse_attributes(query, key='attributes')
-    groups = _parse_attributes(query, key='group')
+    attributes = _parse_attributes(query)
+    groups = _parse_group(query)
 
     _load_missing_attribute_data()
 
@@ -79,17 +79,39 @@ def _parse_aliases(query: Dict):
         LOG.info(f"There's no aliases in the query {query}")
 
 
-def _parse_attributes(
-        query: Dict,
-        key: Literal['attributes', 'group']
-) -> Union[List[Attribute], None]:
-    """Parses attributes and group sections of the input query"""
+def _parse_attributes(query: Dict) -> Union[List[Attribute], None]:
+    """Parses attributes of the input query"""
     try:
-        return [Attribute.get(record) for record in query[key]]
+        return [Attribute.get(record) for record in query['attributes']]
     except KeyError:
-        if key == 'attributes':
-            raise NoAttributesInInputQuery(query)
-        LOG.info(f"There's no {key} in the query {query}")
+        raise NoAttributesInInputQuery(query)
+
+
+def _parse_group(query: Dict) -> Union[List[Attribute], None]:
+    """Parses group of the input query"""
+    if 'group' in query:
+        group_attrs = []
+        for record in query['group']:
+            if record['field'] not in map(_get_attr_field, Attribute.all_attributes):
+                raise GroupByError()
+            group_attrs.append(Attribute.get(record))
+        return group_attrs
+    else:
+        LOG.info(f"There's no group in the query {query}")
+
+
+def _get_attr_field(attribute):
+    """
+    Extracts field from Attribute object. The cases are as follows:
+    1) Field: attribute.field
+    2) Aggregate: attribute.field.field
+    3) Alias -> Field: attribute.attr.field
+    4) Alias -> Aggregate: attribute.attr.field.field
+    :param attribute: Attribute
+    :return: str
+    """
+    attr = attribute.attr   # in case attribute is Alias
+    return attr.field if isinstance(attr, Field) else attr.field.field
 
 
 def _parse_filter(
@@ -224,10 +246,9 @@ def _get_pg_filter(filter_: Filter) -> str:
 if __name__ == '__main__':
     """For debugging purposes"""
     from query_compiler.configs.logger_config import config_logger
-    from query_compiler.schemas.sample_query import SAMPLE_QUERY, \
-        SAMPLE_QUERY_GRAPH
+    from query_compiler.schemas.sample_query import (
+        SAMPLE_QUERY, SAMPLE_QUERY_GRAPH
+    )
 
     config_logger()
     print(generate_sql_query(SAMPLE_QUERY_GRAPH))
-    print()
-    print(generate_sql_query(SAMPLE_QUERY))
