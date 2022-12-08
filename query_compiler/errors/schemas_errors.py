@@ -37,3 +37,8 @@ class HTTPErrorFromDataCatalog(QueryCompilerError):
             f"Couldn't get attribute data from the DataCatalog service. "
             f"Url: {url}, headers: {header}, body: {body}"
         )
+
+
+class UnknownAggregationFunctionError(QueryCompilerError):
+    def __init__(self, aggr_func: str):
+        super().__init__(f"Unknown aggregation function was given {aggr_func}")

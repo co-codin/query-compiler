@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     retry_status_list: Tuple[int, ...] = (429, 500, 502, 503, 504)
     retry_method_list: Tuple[str, ...] = ('GET',)
 
+    """Schemas constants"""
+    pg_aggregation_functions: Tuple[str, ...] = ('count', 'avg', 'sum', 'min', 'max')
+
     class Config:
         env_file = '../../.env'
         env_file_encoding = 'utf-8'

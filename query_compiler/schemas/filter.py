@@ -5,8 +5,9 @@ from datetime import date, datetime
 
 from query_compiler.schemas.attribute import Attribute, Aggregate
 from query_compiler.schemas.data_catalog import DataCatalog
-from query_compiler.errors.schemas_errors import FilterConvertError, \
-    FilterValueCastError
+from query_compiler.errors.schemas_errors import (
+    FilterConvertError, FilterValueCastError, UnknownAggregationFunctionError
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -82,9 +83,10 @@ class SimpleFilter(Filter):
                 type_name = 'int'
             elif attr.func == 'avg':
                 type_name = 'float'
-            else:
-                """sum, min or max case"""
+            elif attr.func in ('sum', 'min', 'max'):
                 type_name = DataCatalog.get_type(attr.field.id)
+            else:
+                raise UnknownAggregationFunctionError(attr.func)
         else:
             """self.attr is a an instance of a class Field"""
             type_name = DataCatalog.get_type(self.attr.id)

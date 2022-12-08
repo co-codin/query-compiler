@@ -2,8 +2,11 @@ import logging
 
 from abc import ABC
 
+from query_compiler.configs.settings import settings
 from query_compiler.schemas.data_catalog import DataCatalog
-from query_compiler.errors.schemas_errors import AttributeConvertError
+from query_compiler.errors.schemas_errors import (
+    AttributeConvertError, UnknownAggregationFunctionError
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -96,3 +99,14 @@ class Aggregate(Attribute):
     @property
     def table(self):
         return self.field.attr.table
+
+    @property
+    def func(self):
+        return self._func
+
+    @func.setter
+    def func(self, func):
+        if func in settings.pg_aggregation_functions:
+            self._func = func
+        else:
+            raise UnknownAggregationFunctionError(func)
