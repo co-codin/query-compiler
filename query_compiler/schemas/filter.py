@@ -41,7 +41,7 @@ class SimpleFilter(Filter):
     _type_names_to_types = {
         'int': lambda val: val if isinstance(val, int) else int(val),
         'float': lambda val: val if isinstance(val, float) else float(val),
-        'str': lambda val: val if isinstance(val, str) else str(val),
+        'string': lambda val: val if isinstance(val, str) else str(val),
         'bool': lambda val: val if isinstance(val, bool) else bool(val),
         'date': lambda val:
         val if isinstance(val, date)

@@ -245,10 +245,8 @@ def _get_pg_filter(filter_: Filter) -> str:
 
 if __name__ == '__main__':
     """For debugging purposes"""
-    from query_compiler.configs.logger_config import config_logger
     from query_compiler.schemas.sample_query import (
         SAMPLE_QUERY, SAMPLE_QUERY_GRAPH
     )
 
-    config_logger()
     print(generate_sql_query(SAMPLE_QUERY_GRAPH))
