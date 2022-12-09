@@ -30,13 +30,15 @@ def get_attributes_record():
             {
                 "alias": "appointments"
             }
-        ),
-        "group": (
-            {
-                "field": "patient.appointment",
-            },
-        ),
+        )
     }
+
+
+@pytest.fixture()
+def get_group_record(clear_all_attributes):
+    record = {'field': "patient.appointment"}
+    Attribute.get(record)
+    return {'group': (record,)}
 
 
 @pytest.fixture()

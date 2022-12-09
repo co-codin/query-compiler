@@ -90,7 +90,7 @@ def test_get_type_name_having_positive(
     (
             (int, 'int'),
             (float, 'float'),
-            (str, 'str',),
+            (str, 'string',),
             (bool, 'bool'),
             (date, 'date')
     ),
@@ -115,7 +115,7 @@ def test_simple_filter_value_setter_positive(
     (
             ('date', 'int'),
             ('date', 'float'),
-            ('int', 'str'),
+            ('int', 'string'),
             ('date', 'bool'),
             ('int', 'date')
     ),

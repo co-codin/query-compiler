@@ -6,7 +6,7 @@ from unittest.mock import patch, Mock
 from query_compiler.schemas.filter import BooleanFilter, SimpleFilter
 from query_compiler.schemas.sample_query import SAMPLE_QUERY_GRAPH
 from query_compiler.services.query_parse import (
-    _parse_aliases, _parse_attributes, _parse_filter,
+    _parse_aliases, _parse_attributes, _parse_group, _parse_filter,
     _get_missing_attribute_names, _load_missing_attribute_data,
     _build_join_hierarchy, _get_pg_attribute, _get_pg_filter,
     _build_attributes_clause, _build_from_clause, _build_filter_clause, clear,
@@ -35,28 +35,31 @@ def test_parse_aliases_no_aliases(clear_all_aliases):
     assert len(Alias.all_aliases) == 0
 
 
-@pytest.mark.parametrize(
-    'key, classes',
-    (
-        ('attributes', (Field, Alias)),
-        ('group', (Field,))
-    )
-)
-def test_parse_attributes_positive(get_attributes_record, key, classes):
-    actual_attributes = _parse_attributes(get_attributes_record, key=key)
+def test_parse_attributes_positive(get_attributes_record):
+    classes = (Field, Alias)
+    actual_attributes = _parse_attributes(get_attributes_record)
     expected_attributes = []
-    for attr_record, class_ in zip(get_attributes_record[key], classes):
+    for attr_record, class_ in zip(get_attributes_record['attributes'], classes):
+        expected_attributes.append(class_(attr_record))
+    assert expected_attributes == actual_attributes
+
+
+def test_parse_group_positive(get_group_record):
+    classes = (Field,)
+    actual_attributes = _parse_group(get_group_record)
+    expected_attributes = []
+    for attr_record, class_ in zip(get_group_record['group'], classes):
         expected_attributes.append(class_(attr_record))
     assert expected_attributes == actual_attributes
 
 
 def test_parse_attributes_no_attributes():
     with pytest.raises(NoAttributesInInputQuery):
-        _parse_attributes({}, key='attributes')
+        _parse_attributes({})
 
 
 def test_parse_attributes_no_group():
-    assert _parse_attributes({}, key='group') is None
+    assert _parse_group({}) is None
 
 
 def test_parse_filter_positive(
@@ -246,8 +249,8 @@ def test_build_filter_clause_no_filter(key):
 
 def test_clear(get_aliases_record, get_attributes_record):
     _parse_aliases(get_aliases_record)
-    _parse_attributes(get_attributes_record, key='attributes')
-    _parse_attributes(get_attributes_record, key='group')
+    _parse_attributes(get_attributes_record)
+    _parse_group(get_attributes_record)
     clear()
     assert len(Alias.all_aliases) == 0
     assert len(Attribute.all_attributes) == 0

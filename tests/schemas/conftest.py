@@ -97,7 +97,7 @@ def get_simple_filters_with_fields_of_all_types():
             "field": "patient.age",
             "value": '35.'
         },
-        'str': {
+        'string': {
             "operator": "<",
             "field": "patient.age",
             "value": 'string'
