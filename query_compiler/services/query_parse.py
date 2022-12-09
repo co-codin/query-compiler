@@ -82,7 +82,15 @@ def _parse_aliases(query: Dict):
 def _parse_attributes(query: Dict) -> Union[List[Attribute], None]:
     """Parses attributes of the input query"""
     try:
-        return [Attribute.get(record) for record in query['attributes']]
+        attr_list = []
+        attr_set = set()
+        for record in query['attributes']:
+            attr = Attribute.get(record)
+            if attr in attr_set:
+                continue
+            attr_set.add(attr)
+            attr_list.append(attr)
+        return attr_list
     except KeyError:
         raise NoAttributesInInputQuery(query)
 
