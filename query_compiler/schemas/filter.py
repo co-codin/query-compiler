@@ -3,10 +3,12 @@ import logging
 from abc import ABC
 from datetime import date, datetime
 
+from query_compiler.configs.settings import settings
 from query_compiler.schemas.attribute import Attribute, Aggregate
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.errors.schemas_errors import (
-    FilterConvertError, FilterValueCastError, UnknownAggregationFunctionError
+    FilterConvertError, FilterValueCastError, UnknownAggregationFunctionError,
+    UnknownOperatorFunctionError
 )
 
 LOG = logging.getLogger(__name__)
@@ -69,6 +71,17 @@ class SimpleFilter(Filter):
             self._value = self._type_names_to_types[attr_type_name](value)
         except (TypeError, ValueError) as exc:
             raise FilterValueCastError(attr_type_name, value) from exc
+
+    @property
+    def operator(self):
+        return self._operator
+
+    @operator.setter
+    def operator(self, operator):
+        if operator not in settings.operator_functions:
+            raise UnknownOperatorFunctionError(operator)
+        else:
+            self._operator = operator
 
     def _get_attr_type_name(self) -> str:
         attr = self.attr.attr

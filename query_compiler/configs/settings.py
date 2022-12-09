@@ -31,6 +31,7 @@ class Settings(BaseSettings):
 
     """Schemas constants"""
     pg_aggregation_functions: Tuple[str, ...] = ('count', 'avg', 'sum', 'min', 'max')
+    operator_functions: Tuple[str, ...] = ('<', '<=', '=', '>', '>=')
 
     class Config:
         env_file = '../../.env'

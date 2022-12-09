@@ -41,4 +41,9 @@ class HTTPErrorFromDataCatalog(QueryCompilerError):
 
 class UnknownAggregationFunctionError(QueryCompilerError):
     def __init__(self, aggr_func: str):
-        super().__init__(f"Unknown aggregation function was given {aggr_func}")
+        super().__init__(f"Unknown aggregation function was given: {aggr_func}")
+
+
+class UnknownOperatorFunctionError(QueryCompilerError):
+    def __init__(self, operator_func: str):
+        super().__init__(f"Unknown operator function was given: {operator_func}")
