@@ -6,6 +6,7 @@ from query_compiler.schemas.attribute import Attribute, Alias, Aggregate, Field
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.schemas.filter import Filter, SimpleFilter, BooleanFilter
 from query_compiler.schemas.table import Table, Relation
+from query_compiler.services.access_control import check_access
 from query_compiler.errors.query_parse_errors import DeserializeJSONQueryError
 from query_compiler.errors.schemas_errors import NoAttributesInInputQuery
 
@@ -13,20 +14,22 @@ logger = logging.getLogger(__name__)
 _result = []
 
 
-def generate_sql_query(query: bytes) -> str:
+def generate_sql_query(query: bytes, identity_id: str) -> str:
     try:
-        return _generate_sql_query(query)
+        return _generate_sql_query(query, identity_id)
     finally:
         _clear()
 
 
-def _generate_sql_query(query: bytes) -> str:
+def _generate_sql_query(query: bytes, identity_id: str) -> str:
     """Function for generating sql query from json query"""
     logger.info("Starting generating SQL query from the json query")
 
     dict_query = _from_json_to_dict(query)
+    dict_query['_identity_id'] = identity_id
 
     attributes, filter_, groups, having = _parse_query(dict_query)
+    check_access(identity_id, attributes)
     root_table, tables = _build_join_hierarchy()
     sql_query = _build_sql_query(
         attributes, root_table, tables, filter_, groups, having
@@ -76,10 +79,8 @@ def _parse_query(query: Dict) -> Tuple[
 
 def _load_missing_attribute_data():
     missing_attrs = _get_missing_attribute_names()
-    if len(missing_attrs) > 1:
+    if missing_attrs:
         DataCatalog.load_missing_attr_data_list(missing_attrs)
-    elif len(missing_attrs) == 1:
-        DataCatalog.load_missing_attr_data(missing_attrs[0])
 
 
 def _get_missing_attribute_names() -> List[str]:
@@ -238,6 +239,6 @@ if __name__ == '__main__':
         SAMPLE_QUERY_GRAPH
 
     config_logger()
-    print(generate_sql_query(SAMPLE_QUERY_GRAPH))
+    print(generate_sql_query(SAMPLE_QUERY_GRAPH, ''))
     print()
-    print(generate_sql_query(SAMPLE_QUERY))
+    print(generate_sql_query(SAMPLE_QUERY, ''))
