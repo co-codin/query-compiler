@@ -37,3 +37,8 @@ class HTTPErrorFromDataCatalog(QueryCompilerError):
             f"Couldn't get attribute data from the DataCatalog service. "
             f"Url: {url}, headers: {header}, body: {body}"
         )
+
+
+class NoAliasMappedValueError(QueryCompilerError):
+    def __init__(self, alias: str):
+        super().__init__(f"No alias mapped value was given for alias: {alias}")
