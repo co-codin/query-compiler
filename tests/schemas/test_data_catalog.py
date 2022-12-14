@@ -25,7 +25,7 @@ def test_is_field_in_attributes_dict(field_name, is_in_attributes):
 
 
 def test_get_http_session_positive():
-    url = f"{settings.data_catalog_url}:{settings.data_catalog_port}"
+    url = settings.data_catalog_url
     retry_strategy = Retry(
         total=settings.retries,
         status_forcelist=settings.retry_status_list,
@@ -47,49 +47,6 @@ def test_get_http_session_positive():
     assert expected_retry.total == actual_retry.total
     assert expected_retry.status_forcelist == actual_retry.status_forcelist
     assert expected_retry.allowed_methods == actual_retry.allowed_methods
-
-
-@patch('query_compiler.schemas.data_catalog.DataCatalog._get_http_session')
-def test_load_missing_attr_data_positive(mock_get_http_session: Mock):
-    data_catalog_response = {
-        'table': {
-            'name': 'some_name', 'relation': ('some_relation',)
-        },
-        'field': 'some_field',
-        'type': 'some_type'
-    }
-    mock_http_session: Mock = mock_get_http_session.return_value
-    mock_get: Mock = mock_http_session.get
-    mock_json = mock_get.return_value.json
-    mock_json.return_value = data_catalog_response
-    missing_attribute = 'missing_attribute'
-    url = f"{settings.data_catalog_url}:{settings.data_catalog_port}" \
-          f"/mappings/{missing_attribute}"
-    DataCatalog.load_missing_attr_data(missing_attribute)
-
-    assert DataCatalog._attributes[missing_attribute] == \
-           data_catalog_response
-    mock_get_http_session.assert_called_once_with(url)
-    mock_get.assert_called_once_with(url, timeout=settings.timeout)
-    mock_json.assert_called_once()
-    mock_http_session.close.called_once()
-
-
-@patch('query_compiler.schemas.data_catalog.DataCatalog._get_http_session')
-def test_load_missing_attr_data_request_exception(mock_get_http_session: Mock):
-    mock_http_session: Mock = mock_get_http_session.return_value
-    mock_get: Mock = mock_http_session.get
-    missing_attribute = 'missing_attribute'
-    url = f"{settings.data_catalog_url}:{settings.data_catalog_port}" \
-          f"/mappings/{missing_attribute}"
-    mock_get.side_effect = RequestException(
-        request=Mock(url=url, headers=None, data=None)
-    )
-    with pytest.raises(HTTPErrorFromDataCatalog):
-        DataCatalog.load_missing_attr_data(missing_attribute)
-    mock_get_http_session.assert_called_once_with(url)
-    mock_get.assert_called_once_with(url, timeout=settings.timeout)
-    mock_http_session.close.called_once()
 
 
 @patch('query_compiler.schemas.data_catalog.DataCatalog._get_http_session')
@@ -115,8 +72,7 @@ def test_load_missing_attr_data_list_positive(mock_get_http_session: Mock):
     mock_json = mock_get.return_value.json
     mock_json.return_value = data_catalog_response
     missing_attributes = ['missing_attribute1', 'missing_attribute2']
-    url = f"{settings.data_catalog_url}:{settings.data_catalog_port}" \
-          f"/mappings"
+    url = f"{settings.data_catalog_url}/mappings"
     DataCatalog.load_missing_attr_data_list(missing_attributes)
 
     for key, field_data in zip(missing_attributes, data_catalog_response):
@@ -138,8 +94,7 @@ def test_load_missing_attr_data_list_request_exception(
     mock_http_session: Mock = mock_get_http_session.return_value
     mock_get: Mock = mock_http_session.get
     missing_attributes = ['missing_attribute1', 'missing_attribute2']
-    url = f"{settings.data_catalog_url}:{settings.data_catalog_port}" \
-          f"/mappings"
+    url = f"{settings.data_catalog_url}/mappings"
     mock_get.side_effect = RequestException(
         request=Mock(url=url, headers=None, data=None)
     )
