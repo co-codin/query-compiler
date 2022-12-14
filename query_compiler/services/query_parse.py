@@ -7,6 +7,7 @@ from query_compiler.schemas.attribute import Attribute, Alias, Aggregate, Field
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.schemas.filter import Filter, SimpleFilter, BooleanFilter
 from query_compiler.schemas.table import Relation
+from query_compiler.services.access_control import check_access
 from query_compiler.errors.schemas_errors import NoAttributesInInputQuery
 from query_compiler.errors.query_parse_errors import (
     NoRootTable, NotOneRootTable, GroupByError
@@ -15,19 +16,30 @@ from query_compiler.errors.query_parse_errors import (
 LOG = logging.getLogger(__name__)
 
 
-def generate_sql_query(json_query: str) -> str:
+def generate_sql_query(query: str, identity_id: str) -> str:
+    try:
+        return _generate_sql_query(query, identity_id)
+    finally:
+        _clear()
+
+
+def _generate_sql_query(query: str, identity_id: str) -> str:
     """Function for generating sql query from json query"""
     LOG.info("Starting generating SQL query from the json query")
 
-    dict_query = deserialize_json_query(json_query)
+    dict_query = deserialize_json_query(query)
+    dict_query['_identity_id'] = identity_id
+
     attributes, filter_, groups, having = _parse_query(dict_query)
+
+    check_access(identity_id, attributes)
     root_table_name, tables = _build_join_hierarchy()
     sql_query = _build_sql_query(
         attributes, root_table_name, tables, filter_, groups, having
     )
 
     LOG.info("Generating SQL query from the json query successfully "
-                "completed"
+             "completed"
              )
     return sql_query
 
@@ -56,10 +68,8 @@ def _parse_query(query: Dict) -> Tuple[
 
 def _load_missing_attribute_data():
     missing_attrs = _get_missing_attribute_names()
-    if len(missing_attrs) > 1:
+    if missing_attrs:
         DataCatalog.load_missing_attr_data_list(missing_attrs)
-    elif len(missing_attrs) == 1:
-        DataCatalog.load_missing_attr_data(missing_attrs[0])
 
 
 def _get_missing_attribute_names() -> List[str]:
@@ -100,7 +110,8 @@ def _parse_group(query: Dict) -> Union[List[Attribute], None]:
     if 'group' in query:
         group_attrs = []
         for record in query['group']:
-            if record['field'] not in map(_get_attr_field, Attribute.all_attributes):
+            if record['field'] not in map(_get_attr_field,
+                                          Attribute.all_attributes):
                 raise GroupByError()
             group_attrs.append(Attribute.get(record))
         return group_attrs
@@ -118,7 +129,7 @@ def _get_attr_field(attribute):
     :param attribute: Attribute
     :return: str
     """
-    attr = attribute.attr   # in case attribute is Alias
+    attr = attribute.attr  # in case attribute is Alias
     return attr.field if isinstance(attr, Field) else attr.field.field
 
 
@@ -177,7 +188,8 @@ def _build_sql_query(
     where = _build_filter_clause(filter_, key='where')
     group_by = _build_attributes_clause(groups, key='group by')
     having = _build_filter_clause(having, key='having')
-    sql_query = _piece_sql_statements_together(select, tables, where, group_by, having)
+    sql_query = _piece_sql_statements_together(select, tables, where, group_by,
+                                               having)
 
     LOG.info("SQL query building successfully completed")
     return sql_query
@@ -217,7 +229,7 @@ def _build_filter_clause(filter_: Filter, key: Literal['where', 'having']):
         return f"{key} {pg_filter}"
 
 
-def clear():
+def _clear():
     Attribute.clear()
     Alias.clear()
 
@@ -249,12 +261,3 @@ def _get_pg_filter(filter_: Filter) -> str:
         filter_ = cast(BooleanFilter, filter_)
         parts = (f'({_get_pg_filter(part)})' for part in filter_.values)
         return f' {filter_.operator} '.join(parts)
-
-
-if __name__ == '__main__':
-    """For debugging purposes"""
-    from query_compiler.schemas.sample_query import (
-        SAMPLE_QUERY, SAMPLE_QUERY_GRAPH
-    )
-
-    print(generate_sql_query(SAMPLE_QUERY_GRAPH))

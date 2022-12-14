@@ -1,7 +1,7 @@
 import requests
 import json
 
-from typing import List
+from typing import List, Tuple
 from requests import RequestException
 from requests.adapters import HTTPAdapter, Retry
 
@@ -11,101 +11,7 @@ from query_compiler.configs.settings import settings
 
 
 class DataCatalog:
-    _attributes = {
-        "patient.age": {
-            "db": "main",
-            "table": {"name": "patient"},
-            "field": "age",
-            "type": "int",
-        },
-        "patient.appointment": {
-            "db": "main",
-            "table": {
-                "name": "appointment",
-                "relation": (
-                    {
-                        "table": "patient",
-                        "on": ("id", "patient_id"),
-                    },
-                ),
-            },
-            "field": "id",
-            "type": "int",
-        },
-        "patient.appointment.at": {
-            "db": "main",
-            "table": {
-                "name": "appointment",
-                "relation": (
-                    {
-                        "table": "patient",
-                        "on": ("id", "patient_id"),
-                    },
-                )
-            },
-            "field": "age",
-            "type": "date",
-        },
-        "case.doctor.person.name_sat.family_name": {
-            "table": {
-                "name": "dv_raw.person_name_sat",
-                "relation": [
-                    {
-                        "table": "dv_raw.case_hub",
-                        "on": ["_hash_key", "idcase_hash_fkey"]
-                    },
-                    {
-                        "table": "dv_raw.case_doctor_link",
-                        "on": ["iddoctor_hash_fkey", "iddoctor_hash_fkey"]
-                    },
-                    {
-                        "table": "dv_raw.doctor_person_link",
-                        "on": ["idperson_hash_fkey", "_hash_fkey"]
-                    }
-                ]
-            },
-            "field": "familyname",
-            "type": "string"
-        },
-        "case.biz_key": {
-            "table": {"name": "dv_raw.case_hub", "relation": []},
-            "field": "_biz_key", "type": "string"
-        },
-        "case.doctor.person.sat.birth_date": {
-            "table": {
-                "name": "dv_raw.person_sat",
-                "relation": [
-                    {
-                        "table": "dv_raw.case_hub",
-                        "on": ["_hash_key", "idcase_hash_fkey"]
-                    },
-                    {
-                        "table": "dv_raw.case_doctor_link",
-                        "on": ["iddoctor_hash_fkey", "iddoctor_hash_fkey"]
-                    },
-                    {
-                        "table": "dv_raw.doctor_person_link",
-                        "on": ["idperson_hash_fkey", "_hash_fkey"]
-                    }
-                ]
-            },
-            "field": "birthdate",
-            "type": "string"
-        },
-        "case.sat.open_date": {
-            "table": {
-                "name": "dv_raw.case_sat",
-                "relation": [
-                    {
-                        "table": "dv_raw.case_hub",
-                        "on": ["_hash_key", "_hash_fkey"]
-                    }
-                ]
-            },
-            "field": "opendate",
-            "type": "string"
-        }
-    }
+    _attributes = {}
 
     @classmethod
     def get_table(cls, name: str) -> Table:
@@ -116,37 +22,21 @@ class DataCatalog:
         return cls._attributes[name]['field']
 
     @classmethod
+    def get_field_attributes(cls, name: str) -> Tuple[str]:
+        return tuple(cls._attributes[name]['attributes'])
+
+    @classmethod
     def get_type(cls, name: str) -> str:
         try:
             attr_data = cls._attributes[name]
         except KeyError:
-            cls.load_missing_attr_data(name)
+            cls.load_missing_attr_data_list([name])
             attr_data = cls._attributes[name]
         return attr_data['type']
 
     @classmethod
-    def load_missing_attr_data(cls, attr_name: str):
-        url = f"{settings.data_catalog_url}:" \
-              f"{settings.data_catalog_port}/mappings/{attr_name}"
-        http_session = cls._get_http_session(url)
-        try:
-            graph_req = http_session.get(
-                url,
-                timeout=settings.timeout
-            )
-        except RequestException as request_err:
-            req = request_err.request
-            raise HTTPErrorFromDataCatalog(req.url, req.headers, req.body) \
-                from request_err
-        else:
-            cls._attributes[attr_name] = graph_req.json()
-        finally:
-            http_session.close()
-
-    @classmethod
     def load_missing_attr_data_list(cls, missing_attributes: List[str]):
-        url = f"{settings.data_catalog_url}:" \
-              f"{settings.data_catalog_port}/mappings"
+        url = f"{settings.data_catalog_url}/mappings"
         http_session = cls._get_http_session(url)
         try:
             graph_req = http_session.get(

@@ -3,12 +3,12 @@ from pydantic import BaseSettings
 
 
 class Settings(BaseSettings):
-    """Logging constants"""
+    # Logging constants
     debug: bool = False
     log_dir: str = "/var/log/n3dwh/"
     log_name: str = "query_compiler.log"
 
-    """RabbitMQ constants"""
+    # RabbitMQ constants
     mq_connection_string: str = 'amqp://dwh:dwh@rabbit.lan:5672'
 
     request_queue: str = 'compile_tasks'
@@ -21,19 +21,23 @@ class Settings(BaseSettings):
     result_channel_exchange: str = 'query_compile'
     result_channel_routing_key: str = 'result'
 
-    """DataCatalog constants"""
-    data_catalog_url: str = "http://data-catalog.lan"
-    data_catalog_port: int = 8000
+    # DataCatalog constants
+    data_catalog_url: str = "http://data-catalog.lan:8000"
     retries: int = 5
     timeout: int = 1
     retry_status_list: Tuple[int, ...] = (429, 500, 502, 503, 504)
     retry_method_list: Tuple[str, ...] = ('GET',)
 
-    """Schemas constants"""
+    # IAM constants
+    iam_url: str = "http://iam.lan:8000"
+
+    # Schemas constants
     pg_aggregation_functions: Tuple[str, ...] = ('count', 'avg', 'sum', 'min', 'max')
     operator_functions: Tuple[str, ...] = ('<', '<=', '=', '>', '>=')
 
     class Config:
+        env_prefix = "dwh_query_compiler_"
+        case_sensitive = False
         env_file = '../../.env'
         env_file_encoding = 'utf-8'
 

@@ -4,16 +4,16 @@ from query_compiler.errors import QueryCompilerError
 class AttributeConvertError(QueryCompilerError):
     def __init__(self, record):
         super().__init__(
-            f"Couldn't convert the record {record} to one of the Attribute"
-            f"child classes: Field, Alias, Aggregate"
+            f"Couldn't convert the following record {record} to one of the "
+            f"Attribute child classes: Field, Alias, Aggregate"
         )
 
 
 class FilterConvertError(QueryCompilerError):
     def __init__(self, record):
         super().__init__(
-            f"Couldn't convert the record {record} to one of the Filter child"
-            f"classes: BooleanFilter, SimpleFilter"
+            f"Couldn't convert the following record {record} to one of the "
+            f"Filter child classes: BooleanFilter, SimpleFilter"
         )
 
 
@@ -47,3 +47,8 @@ class UnknownAggregationFunctionError(QueryCompilerError):
 class UnknownOperatorFunctionError(QueryCompilerError):
     def __init__(self, operator_func: str):
         super().__init__(f"Unknown operator function was given: {operator_func}")
+
+
+class NoAliasMappedValueError(QueryCompilerError):
+    def __init__(self, alias: str):
+        super().__init__(f"No alias mapped value was given for the following alias: {alias}")

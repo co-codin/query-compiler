@@ -6,7 +6,7 @@ from query_compiler.errors import QueryCompilerError
 class DeserializeJSONQueryError(QueryCompilerError):
     def __init__(self, json_query: str):
         super().__init__(
-            f"Couldn't deserialize the input json query {json_query}"
+            f"Couldn't deserialize the following json query {json_query}"
         )
 
 
@@ -27,3 +27,11 @@ class GroupByError(QueryCompilerError):
         super().__init__(
             "Group records are not matched up with attributes records"
         )
+
+
+class AccessDeniedError(QueryCompilerError):
+    def __init__(self, denied_fields):
+        super().__init__(
+            f"Access denied for {denied_fields}"
+        )
+        self.denied_fields = denied_fields
