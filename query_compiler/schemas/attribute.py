@@ -3,7 +3,9 @@ import logging
 from abc import ABC
 
 from query_compiler.schemas.data_catalog import DataCatalog
-from query_compiler.errors.schemas_errors import AttributeConvertError
+from query_compiler.errors.schemas_errors import (
+    AttributeConvertError, NoAliasMappedValueError
+)
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +68,10 @@ class Alias(Attribute):
 
     @property
     def attr(self):
-        return self.all_aliases[self.alias]
+        try:
+            return self.all_aliases[self.alias]
+        except KeyError:
+            raise NoAliasMappedValueError(self.alias)
 
     @property
     def table(self):

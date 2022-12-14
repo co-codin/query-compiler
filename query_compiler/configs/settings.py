@@ -24,14 +24,17 @@ class Settings(BaseSettings):
     query_channel_routing_key: str = 'result'
 
     """DataCatalog constants"""
-    data_catalog_url: str = "http://data-catalog.lan"
-    data_catalog_port: int = 8000
+    data_catalog_url: str = "http://data-catalog.lan:8000"
     retries: int = 5
     timeout: int = 10
     retry_status_list: Tuple[int, ...] = (429, 500, 502, 503, 504)
     retry_method_list: Tuple[str, ...] = ('GET',)
 
+    iam_url: str = "http://iam.lan:8000"
+
     class Config:
+        env_prefix = "dwh_query_compiler_"
+        case_sensitive = False
         env_file = '../../.env'
         env_file_encoding = 'utf-8'
 
