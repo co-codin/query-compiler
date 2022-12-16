@@ -1,70 +1,118 @@
 import json
-
 import pika
 import logging
 
-from typing import Callable
+from typing import Callable, Union
+from pika.exceptions import (
+    ChannelWrongStateError, ConnectionWrongStateError
+)
+from pika.channel import Channel
+from socket import gaierror
 
 from query_compiler.configs.settings import settings
+from query_compiler.errors.rabbit_mq_errors import NoAMQPConnectionError
+
+LOG = logging.getLogger(__name__)
 
 
 class RabbitMQService:
     def __init__(self):
-        """Set connection parameters to RabbitMQ task broker"""
-        self._conn_params = pika.URLParameters(settings.mq_connection_string)
-        self._logger = logging.getLogger(__name__)
+        self._conn_params = pika.URLParameters(
+            settings.mq_connection_string +
+            f"?heartbeat={settings.heartbeat}&"
+            f"connection_attempts={settings.connection_attempts}&"
+            f"retry_delay={settings.retry_delay}"
+        )
+
+        self._conn: Union[pika.BlockingConnection, None] = None
+        self._request_channel: Union[Channel, None] = None
+        self._query_channel: Union[Channel, None] = None
 
     def __enter__(self):
-        """
-        Log establishing the connection
-        Set a connection to a RabbitMQ task broker.
+        try:
+            self._set_connection()
+        except (RuntimeError, gaierror):
+            LOG.error(NoAMQPConnectionError(settings.mq_connection_string))
+        else:
+            self._set_request_channel()
+            self._set_query_channel()
 
-        Log creating 2 channels(request channel, query channel)
-        Create 2 channels(request channel, query channel)
+            self._declare_request_queue()
+            self._declare_query_queue()
+            return self
 
-        Log declaring queues
-        For each channel create a queue(request queue, query queue)
-        """
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._close_channels()
+        self._close_connection()
+        return True
+
+    def _set_connection(self):
+        LOG.info(
+            f"Setting a connection to RabbitMQ server: "
+            f"{settings.mq_connection_string}"
+        )
         self._conn = pika.BlockingConnection(self._conn_params)
 
+    def _set_request_channel(self):
+        LOG.info("Creating a request channel")
         self._request_channel = self._conn.channel()
-        self._query_channel = self._conn.channel()
-
-        self._request_channel.queue_declare(
-            settings.request_queue
-        )
-        self._query_channel.queue_declare(
-            settings.result_queue
-        )
-
         self._request_channel.basic_qos(
             settings.request_channel_prefetch_count
         )
-        return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """
-        Log exception type and exception value
+    def _set_query_channel(self):
+        LOG.info("Creating a query channel")
+        self._query_channel = self._conn.channel()
 
-        Log request channel closing
-        Close request channel
+    def _declare_request_queue(self):
+        LOG.info(
+            f"Declaring {settings.request_queue} queue in the request channel"
+        )
+        self._request_channel.queue_declare(
+            settings.request_queue
+        )
 
-        Log query channel closing
-        Close query channel
+    def _declare_query_queue(self):
+        LOG.info(
+            f"Declaring {settings.query_queue} queue in the result channel"
+        )
+        self._query_channel.queue_declare(
+            settings.query_queue
+        )
 
-        Log the connection closing
-        Close the connection
-        """
-        self._request_channel.close()
-        self._query_channel.close()
-        self._conn.close()
+    def _close_channels(self):
+        LOG.info("Closing request and query channels")
+        for channel in (self._request_channel, self._query_channel):
+            try:
+                if channel is not None:
+                    channel.close()
+            except ChannelWrongStateError:
+                LOG.warning(
+                    f"Channel {channel.channel_number} is already closed"
+                )
+        self._request_channel = None
+        self._query_channel = None
+
+    def _close_connection(self):
+        LOG.info(f"Closing the connection")
+        try:
+            if self._conn is not None:
+                self._conn.close()
+        except ConnectionWrongStateError:
+            LOG.warning("Connection is already closed")
+        finally:
+            self._conn = None
 
     def set_callback_function(self, callback: Callable):
+        LOG.info(
+            f"Setting a callback function to the {settings.request_queue} queue"
+        )
         self._request_channel.basic_consume(
             settings.request_queue, on_message_callback=callback
         )
 
     def start_consuming(self):
+        LOG.info("Starting consuming...")
         self._request_channel.start_consuming()
 
     def publish_sql_query(self, guid: str, sql_query: str):

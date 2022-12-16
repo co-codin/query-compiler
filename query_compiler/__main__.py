@@ -4,6 +4,7 @@ import pika.channel
 
 from query_compiler.errors.query_parse_errors import AccessDeniedError
 from query_compiler.configs.logger_config import config_logger
+
 from query_compiler.services.rabbitmq import RabbitMQService
 from query_compiler.services.query_parse import generate_sql_query
 
@@ -13,8 +14,7 @@ LOG = logging.getLogger(__name__)
 
 
 def main():
-    logger = logging.getLogger(__name__)
-    logger.info("Starting QueryCompiler service")
+    LOG.info("Starting QueryCompiler service")
 
     with RabbitMQService() as rabbit_mq:
         def callback(
@@ -36,7 +36,7 @@ def main():
                 LOG.info(f'Task {guid} sent to broker')
                 ch.basic_ack(delivery_tag=method.delivery_tag)
             except AccessDeniedError as exc:
-                logger.exception(str(exc))
+                LOG.error(str(exc))
                 ch.basic_reject(
                     delivery_tag=method.delivery_tag,
                     requeue=False
@@ -44,7 +44,7 @@ def main():
                 if guid:
                     rabbit_mq.publish_sql_error(guid, f'Access denied for {exc.denied_fields}')
             except Exception as exc:
-                logger.exception(str(exc))
+                LOG.error(str(exc))
                 ch.basic_reject(
                     delivery_tag=method.delivery_tag,
                     requeue=False
@@ -54,7 +54,8 @@ def main():
 
         rabbit_mq.set_callback_function(callback)
         rabbit_mq.start_consuming()
-    logger.warning("Shutting down QueryCompiler service")
+
+    LOG.info("Shutting down QueryCompiler service")
 
 
 if __name__ == '__main__':
