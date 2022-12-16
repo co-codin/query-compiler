@@ -9,22 +9,25 @@ class Settings(BaseSettings):
     log_name: str = "query_compiler.log"
 
     # RabbitMQ constants
+    heartbeat: int = 5
+    connection_attempts: int = 5
+    retry_delay: int = 10
     mq_connection_string: str = 'amqp://dwh:dwh@rabbit.lan:5672'
 
     request_queue: str = 'compile_tasks'
-    result_queue: str = 'compile_results'
+    query_queue: str = 'compile_results'
 
     request_channel_is_durable: bool = True
     request_channel_prefetch_count: int = 0
 
-    result_channel_is_durable: bool = True
-    result_channel_exchange: str = 'query_compile'
-    result_channel_routing_key: str = 'result'
+    query_channel_is_durable: bool = True
+    query_channel_exchange: str = 'query_compile'
+    query_channel_routing_key: str = 'result'
 
     # DataCatalog constants
     data_catalog_url: str = "http://data-catalog.lan:8000"
     retries: int = 5
-    timeout: int = 1
+    timeout: int = 10
     retry_status_list: Tuple[int, ...] = (429, 500, 502, 503, 504)
     retry_method_list: Tuple[str, ...] = ('GET',)
 

@@ -53,7 +53,7 @@ def main():
 
         rabbit_mq.set_callback_function(callback)
         rabbit_mq.start_consuming()
-    LOG.warning("Shutting down QueryCompiler service")
+    LOG.info("Shutting down QueryCompiler service")
 
 
 if __name__ == '__main__':
