@@ -2,12 +2,14 @@ import logging
 
 from abc import ABC
 
+from query_compiler.configs.settings import settings
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.errors.schemas_errors import (
-    AttributeConvertError, NoAliasMappedValueError
+    AttributeConvertError, UnknownAggregationFunctionError,
+    NoAliasMappedValueError
 )
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 class Attribute(ABC):
@@ -25,8 +27,9 @@ class Attribute(ABC):
                 cls.all_attributes.add(attr)
                 return attr
             except KeyError:
-                logger.info(
-                    f"Record {record} couldn't be converted to {class_}"
+                LOG.info(
+                    f"Record {record} couldn't be converted to "
+                    f"{class_.__name__}"
                 )
         raise AttributeConvertError(record)
 
@@ -100,3 +103,14 @@ class Aggregate(Attribute):
     @property
     def table(self):
         return self.field.attr.table
+
+    @property
+    def func(self):
+        return self._func
+
+    @func.setter
+    def func(self, func):
+        if func in settings.pg_aggregation_functions:
+            self._func = func
+        else:
+            raise UnknownAggregationFunctionError(func)

@@ -3,12 +3,15 @@ import logging
 from abc import ABC
 from datetime import date, datetime
 
+from query_compiler.configs.settings import settings
 from query_compiler.schemas.attribute import Attribute, Aggregate
 from query_compiler.schemas.data_catalog import DataCatalog
-from query_compiler.errors.schemas_errors import FilterConvertError, \
-    FilterValueCastError
+from query_compiler.errors.schemas_errors import (
+    FilterConvertError, FilterValueCastError, UnknownAggregationFunctionError,
+    UnknownOperatorFunctionError
+)
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 class Filter(ABC):
@@ -18,8 +21,9 @@ class Filter(ABC):
             try:
                 return class_(record)
             except (KeyError, ValueError):
-                logger.info(
-                    f"Record {record} couldn't be converted to {class_}"
+                LOG.info(
+                    f"Record {record} couldn't be converted to "
+                    f"{class_.__name__}"
                 )
         raise FilterConvertError(record)
 
@@ -39,7 +43,7 @@ class SimpleFilter(Filter):
     _type_names_to_types = {
         'int': lambda val: val if isinstance(val, int) else int(val),
         'float': lambda val: val if isinstance(val, float) else float(val),
-        'str': lambda val: val if isinstance(val, str) else str(val),
+        'string': lambda val: val if isinstance(val, str) else str(val),
         'bool': lambda val: val if isinstance(val, bool) else bool(val),
         'date': lambda val:
         val if isinstance(val, date)
@@ -62,13 +66,24 @@ class SimpleFilter(Filter):
 
     @value.setter
     def value(self, value):
-        type_name = self._get_type_name()
+        attr_type_name = self._get_attr_type_name()
         try:
-            self._value = self._type_names_to_types[type_name](value)
+            self._value = self._type_names_to_types[attr_type_name](value)
         except (TypeError, ValueError) as exc:
-            raise FilterValueCastError(type_name, value) from exc
+            raise FilterValueCastError(attr_type_name, value) from exc
 
-    def _get_type_name(self) -> str:
+    @property
+    def operator(self):
+        return self._operator
+
+    @operator.setter
+    def operator(self, operator):
+        if operator not in settings.operator_functions:
+            raise UnknownOperatorFunctionError(operator)
+        else:
+            self._operator = operator
+
+    def _get_attr_type_name(self) -> str:
         attr = self.attr.attr
         if isinstance(attr, Aggregate):
             """
@@ -81,9 +96,10 @@ class SimpleFilter(Filter):
                 type_name = 'int'
             elif attr.func == 'avg':
                 type_name = 'float'
-            else:
-                """sum, min or max case"""
+            elif attr.func in ('sum', 'min', 'max'):
                 type_name = DataCatalog.get_type(attr.field.id)
+            else:
+                raise UnknownAggregationFunctionError(attr.func)
         else:
             """self.attr is a an instance of a class Field"""
             type_name = DataCatalog.get_type(self.attr.id)

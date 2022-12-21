@@ -1,13 +1,11 @@
 import logging
-import json
 import pika.channel
 
 from query_compiler.errors.query_parse_errors import AccessDeniedError
 from query_compiler.configs.logger_config import config_logger
-
+from query_compiler.utils.parse_utils import deserialize_json_query
 from query_compiler.services.rabbitmq import RabbitMQService
 from query_compiler.services.query_parse import generate_sql_query
-
 
 config_logger()
 LOG = logging.getLogger(__name__)
@@ -21,17 +19,18 @@ def main():
                 ch: pika.channel.Channel,
                 method: pika.spec.Basic.Deliver,
                 properties: pika.BasicProperties,
-                body: bytes
+                body: str
         ):
             guid = None
             try:
-                payload = json.loads(body)
+                payload = deserialize_json_query(body)
                 guid = payload['guid']
                 query = payload['query']
                 identity_id = payload['identity_id']
                 LOG.info(f'Received task for {guid}')
                 sql_query = generate_sql_query(query, identity_id)
                 LOG.info(f'Compiled task {guid}')
+
                 rabbit_mq.publish_sql_query(guid, sql_query)
                 LOG.info(f'Task {guid} sent to broker')
                 ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -54,7 +53,6 @@ def main():
 
         rabbit_mq.set_callback_function(callback)
         rabbit_mq.start_consuming()
-
     LOG.info("Shutting down QueryCompiler service")
 
 

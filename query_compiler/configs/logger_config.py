@@ -21,5 +21,6 @@ def config_logger():
         filename=os.path.join(settings.log_dir, settings.log_name),
         when='D', backupCount=2, encoding='utf-8'
     )
+
     file_handler.setFormatter(ecs_logging.StdlibFormatter())
     logger.addHandler(file_handler)

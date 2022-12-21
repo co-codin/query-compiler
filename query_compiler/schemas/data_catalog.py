@@ -1,14 +1,11 @@
-import typing
-
 import requests
 import json
 
-from typing import List
+from typing import List, Tuple
 from requests import RequestException
 from requests.adapters import HTTPAdapter, Retry
 
-from query_compiler.errors.schemas_errors import \
-    HTTPErrorFromDataCatalog
+from query_compiler.errors.schemas_errors import HTTPErrorFromDataCatalog
 from query_compiler.schemas.table import Table
 from query_compiler.configs.settings import settings
 
@@ -25,7 +22,7 @@ class DataCatalog:
         return cls._attributes[name]['field']
 
     @classmethod
-    def get_field_attributes(cls, name: str) -> typing.Tuple[str]:
+    def get_field_attributes(cls, name: str) -> Tuple[str]:
         return tuple(cls._attributes[name]['attributes'])
 
     @classmethod

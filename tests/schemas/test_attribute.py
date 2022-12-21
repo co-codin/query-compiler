@@ -1,6 +1,7 @@
 import pytest
 
-from query_compiler.schemas.attribute import *
+from query_compiler.schemas.attribute import Attribute, Field, Alias, Aggregate
+from query_compiler.errors.schemas_errors import AttributeConvertError
 
 
 def test_attribute_get_positive(
