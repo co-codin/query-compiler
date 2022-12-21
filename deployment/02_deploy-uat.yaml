@@ -5,7 +5,6 @@ metadata:
     app.kubernetes.io/name: dwh-query-compiler
     app: query-compiler-web
   name: query-compiler
-#  namespace: dwh-dev
 spec:
   replicas: 1
   selector:
@@ -22,6 +21,10 @@ spec:
         tier: frontend
         track: stable      
     spec:
+      volumes:
+      - name: volumelogs
+        hostPath:
+          path: /mnt/logs
       containers:
       - env:
         - name: LOG_DIR
@@ -34,8 +37,8 @@ spec:
           value: "2"
         - name: RETRY_DELAYS
           value: "10"
-        - name: MQ_CONNECTION_STRING
-          value: amqp://dwh:dwh@10.50.4.110:5672/vhdev
+        - name: dwh_query_compiler_mq_connection_string
+          value: amqp://dwh:dwh@rabbitmq:5672          
         - name: TASK_BROKER_HOST
           value: 10.50.4.110
         - name: REQUEST_QUEUE
@@ -46,11 +49,18 @@ spec:
           value: query_compile
         - name: RESULT_CHANNEL_ROUTING_KEY
           value: result
+        - name: dwh_query_compiler_data_catalog_url 
+          value: "http://data-catalog:8000"
+        - name: dwh_query_compiler_iam_url
+          value: "http://iam:8000"          
         image: 10.50.4.110:5000/query-compiler:dev
         imagePullPolicy: Always
         name: query-compiler
         ports:
         - containerPort: 8888
+        volumeMounts:
+          - mountPath: /var/log/n3dwh/
+            name: volumelogs            
       imagePullSecrets:
         - name: repositorycred
       hostAliases:

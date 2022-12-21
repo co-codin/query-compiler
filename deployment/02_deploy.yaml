@@ -46,9 +46,9 @@ spec:
           value: query_compile
         - name: RESULT_CHANNEL_ROUTING_KEY
           value: result
-        - name: dwh_query_compiler_data_catalog_url: 
+        - name: dwh_query_compiler_data_catalog_url 
           value: http://10.50.4.110:8000
-        - name: dwh_query_compiler_iam_url: 
+        - name: dwh_query_compiler_iam_url
           value: http://10.50.4.110:8000
 
         image: 10.50.4.110:5000/query-compiler:dev
