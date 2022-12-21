@@ -69,7 +69,7 @@ class RabbitMQService:
             f"Declaring {settings.request_queue} queue in the request channel"
         )
         self._request_channel.queue_declare(
-            settings.request_queue
+            settings.request_queue, durable=True
         )
 
     def _declare_query_queue(self):
@@ -77,7 +77,7 @@ class RabbitMQService:
             f"Declaring {settings.query_queue} queue in the result channel"
         )
         self._query_channel.queue_declare(
-            settings.query_queue
+            settings.query_queue, durable=True
         )
 
     def _close_channels(self):
