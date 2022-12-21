@@ -133,8 +133,8 @@ class RabbitMQService:
         }
         payload.update(data)
         self._query_channel.basic_publish(
-            exchange=settings.result_channel_exchange,
-            routing_key=settings.result_channel_routing_key,
+            exchange=settings.query_channel_exchange,
+            routing_key=settings.query_channel_routing_key,
             body=json.dumps(payload).encode('utf-8'),
             properties=pika.BasicProperties(
                 delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE
