@@ -1,100 +1,8 @@
 import pytest
-import json
 
-from query_compiler.schemas.attribute import Alias, Attribute
-from query_compiler.schemas.data_catalog import DataCatalog
-
-
-@pytest.fixture()
-def get_sample_query_json():
-    return json.dumps({
-        "attributes": [
-            {
-                "field": "patient.age",
-            },
-            {
-                "alias": "appointments"
-            }
-        ],
-        "aliases": {
-            "appointments": {
-                "aggregate": {
-                    "function": "count",
-                    "field": "patient.appointment",
-                }
-            },
-            "appointment_time": {"field": "patient.appointment.at"}
-        },
-        "group": [
-            {"field": "patient.appointment", }
-        ],
-        "filter": {
-            "operator": "AND",
-            "values": [
-                {
-                    "operator": "<",
-                    "field": "patient.age",
-                    "value": 35
-                },
-                {
-                    "field": "patient.appointment.at",
-                    "operator": ">",
-                    "value": "2022-08-01",
-                }
-            ]
-        },
-        "having": {
-            "operator": ">",
-            "alias": "appointments",
-            "value": 5
-        },
-    })
-
-
-@pytest.fixture()
-def get_sample_query_dict():
-    return {
-        "attributes": [
-            {
-                "field": "patient.age",
-            },
-            {
-                "alias": "appointments"
-            }
-        ],
-        "aliases": {
-            "appointments": {
-                "aggregate": {
-                    "function": "count",
-                    "field": "patient.appointment",
-                }
-            },
-            "appointment_time": {"field": "patient.appointment.at"}
-        },
-        "group": [
-            {"field": "patient.appointment", }
-        ],
-        "filter": {
-            "operator": "AND",
-            "values": [
-                {
-                    "operator": "<",
-                    "field": "patient.age",
-                    "value": 35
-                },
-                {
-                    "field": "patient.appointment.at",
-                    "operator": ">",
-                    "value": "2022-08-01",
-                }
-            ]
-        },
-        "having": {
-            "operator": ">",
-            "alias": "appointments",
-            "value": 5
-        },
-    }
+from query_compiler.schemas.attribute import Alias, Attribute, Aggregate, Field
+from query_compiler.schemas.filter import SimpleFilter, BooleanFilter
+from query_compiler.schemas.table import Relation
 
 
 @pytest.fixture()
@@ -122,17 +30,19 @@ def get_attributes_record():
             {
                 "alias": "appointments"
             }
-        ),
-        "group": (
-            {
-                "field": "patient.appointment",
-            },
-        ),
+        )
     }
 
 
 @pytest.fixture()
-def add_appointments_alias(clear_all_aliases, clear_all_attributes):
+def get_group_record(clear_all_attributes):
+    record = {'field': "patient.appointment"}
+    Attribute.get(record)
+    return {'group': (record,)}
+
+
+@pytest.fixture()
+def add_appointments_alias():
     Alias.all_aliases['appointments'] = Attribute.get(
         {
             "aggregate": {
@@ -144,7 +54,7 @@ def add_appointments_alias(clear_all_aliases, clear_all_attributes):
 
 
 @pytest.fixture()
-def get_having_simple_record():
+def get_having_simple_record(add_appointments_alias):
     return {
         "having": {
             "operator": ">",
@@ -155,7 +65,7 @@ def get_having_simple_record():
 
 
 @pytest.fixture()
-def get_all_attributes_record():
+def get_existing_and_not_existing_attrs():
     return (
         {'field': 'not_missing_field'},
         {'field': 'missing_field'},
@@ -176,15 +86,134 @@ def get_all_attributes_record():
 
 
 @pytest.fixture()
-def add_not_missing_attrs_to_data_catalog():
-    DataCatalog._attributes = {
-        'not_missing_field': {},
-        'not_missing_alias': {},
-        'not_missing_field_from_aggregate': {}
+def get_aggregate_and_pg_attr():
+    return {
+        'aggregate': Aggregate(
+            {
+                "aggregate": {
+                    "function": "count",
+                    "field": "patient.appointment",
+                }
+            }
+        ),
+        'pg_attribute': 'count(appointment.id)'
     }
 
 
 @pytest.fixture()
-def get_all_attributes(clear_all_attributes, get_all_attributes_record):
-    for attr in get_all_attributes_record:
-        Attribute.all_attributes.add(Attribute.get(attr))
+def get_field_and_pg_attr():
+    return {
+        'field': Field({'field': 'patient.age'}),
+        'pg_attribute': 'patient.age'
+    }
+
+
+@pytest.fixture()
+def get_simple_filter_and_pg_filter(get_simple_filter_record):
+    return {
+        'filter': SimpleFilter(get_simple_filter_record),
+        'pg_filter': 'patient.age > 5'
+    }
+
+
+@pytest.fixture()
+def get_boolean_filter_and_pg_filter(get_boolean_filter_record):
+    return {
+        'filter': BooleanFilter(get_boolean_filter_record),
+        'pg_filter': '(patient.age < 35) AND (appointment.age > 2022-08-01)'
+    }
+
+
+@pytest.fixture()
+def get_attrs_and_sql_statement(add_appointments_alias):
+    return {
+        'attrs': (
+            Field({"field": "patient.age"}),
+            Alias({"alias": "appointments"})
+        ),
+        'sql_attr_part': 'patient.age, count(appointment.id)'
+    }
+
+
+@pytest.fixture()
+def get_relations():
+    return (
+        Relation(
+            'dv_raw.case_doctor_link',
+            {
+                'table': 'dv_raw.case_hub',
+                'on': ('_hash_key', 'idcase_hash_fkey')
+            }
+        ),
+        Relation(
+            'dv_raw.doctor_person_link',
+            {
+                'table': 'dv_raw.case_doctor_link',
+                'on': ('iddoctor_hash_fkey', 'iddoctor_hash_fkey')
+            }
+        ),
+        Relation(
+            'dv_raw.person_sat',
+            {
+                'table': 'dv_raw.doctor_person_link',
+                'on': ('idperson_hash_fkey', '_hash_fkey')
+            }
+        ),
+        Relation(
+            'dv_raw.person_name_sat',
+            {
+                'table': 'dv_raw.doctor_person_link',
+                'on': ('idperson_hash_fkey', '_hash_fkey')
+            }
+        ),
+        Relation(
+            'dv_raw.case_sat',
+            {
+                'table': 'dv_raw.case_hub',
+                'on': ('_hash_key', '_hash_fkey')
+            }
+        ),
+    )
+
+
+@pytest.fixture()
+def fill_attributes():
+    for field in (
+        {"field": "case.biz_key"},
+        {"field": "case.sat.open_date"},
+        {"field": "case.doctor.person.name_sat.family_name"},
+        {"field": "case.doctor.person.sat.birth_date"},
+    ):
+        Field(field)
+
+
+@pytest.fixture()
+def get_from_clause_and_root_table(fill_attributes):
+    root_table_name = 'dv_raw.case_hub'
+    join_statement = 'join dv_raw.case_doctor_link on ' \
+                  'dv_raw.case_hub._hash_key = dv_raw.case_doctor_link.idcase_hash_fkey, ' \
+                  'join dv_raw.doctor_person_link on ' \
+                  'dv_raw.case_doctor_link.iddoctor_hash_fkey = dv_raw.doctor_person_link.iddoctor_hash_fkey, ' \
+                  'join dv_raw.person_sat on ' \
+                  'dv_raw.doctor_person_link.idperson_hash_fkey = dv_raw.person_sat._hash_fkey, ' \
+                  'join dv_raw.person_name_sat on ' \
+                  'dv_raw.doctor_person_link.idperson_hash_fkey = dv_raw.person_name_sat._hash_fkey, ' \
+                  'join dv_raw.case_sat on ' \
+                  'dv_raw.case_hub._hash_key = dv_raw.case_sat._hash_fkey'
+    return {
+        'root_table_name': root_table_name,
+        'from_clause': f"from {root_table_name} {join_statement}"
+    }
+
+
+@pytest.fixture()
+def get_filter_and_sql_statement(
+        get_simple_filter_and_pg_filter, get_boolean_filter_and_pg_filter,
+        add_appointments_alias
+):
+    return {
+        'simple_filter': get_simple_filter_and_pg_filter['filter'],
+        'boolean_filter': get_boolean_filter_and_pg_filter['filter'],
+        'where': f"where {get_simple_filter_and_pg_filter['pg_filter']}",
+        'having': f"having {get_boolean_filter_and_pg_filter['pg_filter']}"
+    }

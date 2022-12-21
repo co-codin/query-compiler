@@ -4,33 +4,6 @@ from query_compiler.schemas.attribute import Alias, Attribute
 
 
 @pytest.fixture()
-def get_field_alias_aggregate_records():
-    return (
-        {
-            "field": "patient.age",
-        },
-        {
-            "alias": "appointments"
-        },
-        {
-            "aggregate": {
-                "function": "count",
-                "field": "patient.appointment",
-            }
-        }
-    )
-
-
-@pytest.fixture()
-def get_simple_filter_record():
-    return {
-            "operator": ">",
-            "field": "patient.age",
-            "value": 5
-        }
-
-
-@pytest.fixture()
 def get_filter_having_with_all_aggregate_funcs(
         add_aliases_with_all_aggr_funcs
 ):
@@ -113,34 +86,48 @@ def get_aliases_dict_value_records_with_all_aggr_funcs():
 
 @pytest.fixture()
 def get_simple_filters_with_fields_of_all_types():
-    return (
-        {
+    return {
+        'int': {
             "operator": "<",
             "field": "patient.age",
             "value": '35'
         },
-
-        {
+        'float': {
             "operator": "<",
             "field": "patient.age",
             "value": '35.'
         },
-
-        {
+        'string': {
             "operator": "<",
             "field": "patient.age",
             "value": 'string'
         },
-
-        {
+        'bool': {
             "operator": "<",
             "field": "patient.age",
             "value": 'True'
         },
-
-        {
+        'date': {
             "operator": "<",
             "field": "patient.age",
             "value": '2022-08-01'
+        }
+    }
+
+
+@pytest.fixture()
+def get_field_alias_aggregate_records():
+    return (
+        {
+            "field": "patient.age",
         },
+        {
+            "alias": "appointments"
+        },
+        {
+            "aggregate": {
+                "function": "count",
+                "field": "patient.appointment",
+            }
+        }
     )
