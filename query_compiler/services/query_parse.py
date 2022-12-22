@@ -218,7 +218,7 @@ def _build_from_clause(root_table_name: str, relations: List[Relation]):
         f'{rel.table}.{rel.key}'
         for rel in relations
     )
-    from_tables = ', '.join(from_to_append)
+    from_tables = ' '.join(from_to_append)
     return f'from {root_table_name} {from_tables}'
 
 
