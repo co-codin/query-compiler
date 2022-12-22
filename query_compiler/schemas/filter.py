@@ -80,8 +80,8 @@ class SimpleFilter(Filter):
         return self._operator
 
     @operator.setter
-    def operator(self, operator):
-        if operator not in settings.operator_functions:
+    def operator(self, operator: str):
+        if operator.lower() not in settings.operator_functions:
             raise UnknownOperatorFunctionError(operator)
         else:
             self._operator = operator
