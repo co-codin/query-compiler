@@ -3,6 +3,8 @@ import logging
 from abc import ABC
 from datetime import date, datetime
 
+from psycopg import sql
+
 from query_compiler.configs.settings import settings
 from query_compiler.schemas.attribute import Attribute, Aggregate
 from query_compiler.schemas.data_catalog import DataCatalog
@@ -69,6 +71,7 @@ class SimpleFilter(Filter):
         attr_type_name = self._get_attr_type_name()
         try:
             self._value = self._type_names_to_types[attr_type_name](value)
+            self._value = sql.quote(self._value)
         except (TypeError, ValueError) as exc:
             raise FilterValueCastError(attr_type_name, value) from exc
 
@@ -77,8 +80,8 @@ class SimpleFilter(Filter):
         return self._operator
 
     @operator.setter
-    def operator(self, operator):
-        if operator not in settings.operator_functions:
+    def operator(self, operator: str):
+        if operator.lower() not in settings.operator_functions:
             raise UnknownOperatorFunctionError(operator)
         else:
             self._operator = operator

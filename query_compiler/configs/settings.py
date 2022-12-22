@@ -36,7 +36,7 @@ class Settings(BaseSettings):
 
     # Schemas constants
     pg_aggregation_functions: Tuple[str, ...] = ('count', 'avg', 'sum', 'min', 'max')
-    operator_functions: Tuple[str, ...] = ('<', '<=', '=', '>', '>=')
+    operator_functions: Tuple[str, ...] = ('<', '<=', '=', '>', '>=', 'like')
 
     class Config:
         env_prefix = "dwh_query_compiler_"
