@@ -100,6 +100,8 @@ def _parse_attributes(query: Dict) -> Union[List[Attribute], None]:
                 continue
             attr_set.add(attr)
             attr_list.append(attr)
+        if len(attr_list) == 0:
+            raise NoAttributesInInputQuery(query)
         return attr_list
     except KeyError:
         raise NoAttributesInInputQuery(query)
