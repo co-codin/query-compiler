@@ -29,7 +29,7 @@ kubercreate-branch:
     - |
       [ -z "$(kubectl get --no-headers=true services -l=app=query-compiler-nodeport -o name | awk -F "/" '{print $2}'t)" ] || kubectl delete service qc-service
 
-    - kubectl create -f ./deployment/02_deploy.yaml
+    - kubectl create -f ./deployment/deploy.yaml
     - kubectl expose deployment query-compiler -l app=query-compiler-nodeport --type=NodePort --name=qc-service
     - kubectl describe service qc-service
     - sleep 60
