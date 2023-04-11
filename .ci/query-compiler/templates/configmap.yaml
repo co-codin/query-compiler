@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "query-compiler.fullname" . }}-configmap
+  labels:
+    {{- include "query-compiler.labels" . | nindent 4 }}
+data:
+  dwh_query_compiler_data_catalog_url: {{ .Values.configmap.data_catalog_url }}
+  dwh_query_compiler_iam_url: {{ .Values.configmap.iam_url }}
