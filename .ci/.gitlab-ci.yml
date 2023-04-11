@@ -31,4 +31,4 @@ deploy:
       - mkdir -p /root/.kube
       - echo $KUBE_CONFIG | base64 -d > /root/.kube/config
     script:
-        - helm upgrade --install -n smartdwh --set-string secrets.dwh_query_compiler_mq_connection_string="${MQ_CONN_STRING}" --set image.tag=$CI_ENVIRONMENT_SLUG-$CI_COMMIT_SHORT_SHA --set image.repository=$DOCKER_REPO/query-compiler query-compiler ./.ci/query-compiler
+        - helm upgrade --install -n smartdwh --set-string secrets.mq_connection_string="${MQ_CONN_STRING}" --set image.tag=$CI_ENVIRONMENT_SLUG-$CI_COMMIT_SHORT_SHA --set image.repository=$DOCKER_REPO/query-compiler query-compiler ./.ci/query-compiler
