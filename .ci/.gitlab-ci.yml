@@ -18,6 +18,7 @@ build-query-compiler:
   script:
     - /kaniko/executor --dockerfile=prod.dockerfile --context=dir://. --destination=$DOCKER_REPO/query-compiler:$CI_ENVIRONMENT_SLUG-$CI_COMMIT_SHORT_SHA --cache=true --cache-repo=$DOCKER_REPO/kaniko-cache --cache-dir=/cache
 
+
 deploy:
     stage: deploy
     image:
