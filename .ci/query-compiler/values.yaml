@@ -11,11 +11,14 @@ image:
   tag: ""
 
 secrets:
-  mq_connection_string: "" # must be b64 encoded
+  mq_connection_string: "" # plain text
 
 configmap:
   iam_url: "http://iam-dev:8000"
   data_catalog_url: "http://data-catalog:8000"
+  query_channel_exchange: ""
+  request_queue: ""
+  query_queue: ""
 
 imagePullSecrets: []
 nameOverride: ""
