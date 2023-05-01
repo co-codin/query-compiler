@@ -4,6 +4,9 @@ metadata:
   name: {{ include "query-compiler.fullname" . }}
   labels:
     {{- include "query-compiler.labels" . | nindent 4 }}
+    {{- if .Values.ciEnv ne "" }}
+    environment: {{ .Values.ciEnv }}
+    {{- end }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
@@ -19,6 +22,9 @@ spec:
       {{- end }}
       labels:
         {{- include "query-compiler.selectorLabels" . | nindent 8 }}
+        {{- if .Values.ciEnv ne "" }}
+        environment: {{ .Values.ciEnv }}
+        {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

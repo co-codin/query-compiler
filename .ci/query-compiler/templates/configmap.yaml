@@ -4,6 +4,9 @@ metadata:
   name: {{ template "query-compiler.fullname" . }}-configmap
   labels:
     {{- include "query-compiler.labels" . | nindent 4 }}
+    {{- if .Values.ciEnv ne "" }}
+    environment: {{ .Values.ciEnv }}
+    {{- end }}
 data:
   {{- range $key, $value := .Values.configmap }}
   dwh_query_compiler_{{ $key }}: {{ $value | quote }}

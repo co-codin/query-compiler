@@ -10,6 +10,7 @@ image:
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
+ciEnv: ""
 secrets:
   mq_connection_string: "" # plain text
 

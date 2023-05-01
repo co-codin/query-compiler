@@ -39,6 +39,7 @@ build-image:
     - yq eval ".ingress.hosts[0].host = env(SITE_URL) | .ingress.tls[0].hosts[0] = env(SITE_URL) | .ingress.hosts[0].paths[0].path = \"${path_value}\"" .ci/$CI_PROJECT_NAME/values.yaml > .ci/$CI_PROJECT_NAME/updated-values.yaml
     - >
       helm upgrade --atomic --install -n smartdwh --timeout 1m 
+      --set-string ciEnv="$CI_ENVIRONMENT_NAME" 
       --set-string secrets.mq_connection_string="$MQ_CONN_STRING" 
       --set-string configmap.iam_url="http://iam-$CI_ENVIRONMENT_NAME:8000" 
       --set-string configmap.data_catalog_url="http://data-catalog-$CI_ENVIRONMENT_NAME:8000" 

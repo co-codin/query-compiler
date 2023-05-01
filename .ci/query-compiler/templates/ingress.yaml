@@ -18,6 +18,9 @@ metadata:
   name: {{ $fullName }}
   labels:
     {{- include "query-compiler.labels" . | nindent 4 }}
+    {{- if .Values.ciEnv ne "" }}
+    environment: {{ .Values.ciEnv }}
+    {{- end }}
   {{- with .Values.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}

@@ -5,6 +5,9 @@ metadata:
   name: {{ include "query-compiler.fullname" . }}
   labels:
     {{- include "query-compiler.labels" . | nindent 4 }}
+    {{- if .Values.ciEnv ne "" }}
+    environment: {{ .Values.ciEnv }}
+    {{- end }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
