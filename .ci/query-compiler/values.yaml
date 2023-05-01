@@ -11,6 +11,7 @@ image:
   tag: ""
 
 ciEnv: ""
+
 secrets:
   mq_connection_string: "" # plain text
 
