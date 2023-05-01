@@ -45,15 +45,13 @@ spec:
           livenessProbe:
             exec:
               command:
-                - python
-                - -c
-                - 'print("Hello world")'
+                - echo
+                - "Hello world"
           readinessProbe:
             exec:
               command:
-                - python
-                - -c
-                - 'print("Hello world")'
+                - echo
+                - "Hello world"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
