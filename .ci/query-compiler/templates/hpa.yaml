@@ -5,7 +5,7 @@ metadata:
   name: {{ include "query-compiler.fullname" . }}
   labels:
     {{- include "query-compiler.labels" . | nindent 4 }}
-    {{- if .Values.ciEnv ne "" }}
+    {{- if ne .Values.ciEnv "" }}
     environment: {{ .Values.ciEnv }}
     {{- end }}
 spec:
