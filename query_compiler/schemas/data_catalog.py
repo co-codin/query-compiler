@@ -1,7 +1,6 @@
 import requests
 import json
 
-from typing import List, Tuple
 from requests import RequestException
 from requests.adapters import HTTPAdapter, Retry
 
@@ -22,7 +21,7 @@ class DataCatalog:
         return cls._attributes[name]['field']
 
     @classmethod
-    def get_field_attributes(cls, name: str) -> Tuple[str]:
+    def get_field_attributes(cls, name: str) -> tuple[str]:
         return tuple(cls._attributes[name]['attributes'])
 
     @classmethod
@@ -35,7 +34,7 @@ class DataCatalog:
         return attr_data['type']
 
     @classmethod
-    def load_missing_attr_data_list(cls, missing_attributes: List[str]):
+    def load_missing_attr_data_list(cls, missing_attributes: list[str]):
         url = f"{settings.data_catalog_url}/mappings"
         http_session = cls._get_http_session(url)
         try:
@@ -46,8 +45,7 @@ class DataCatalog:
             )
         except RequestException as request_error:
             req = request_error.request
-            raise HTTPErrorFromDataCatalog(req.url, req.headers, req.body) \
-                from request_error
+            raise HTTPErrorFromDataCatalog(req.url, req.headers, req.body) from request_error
         else:
             cls._attributes = {
                 **cls._attributes,

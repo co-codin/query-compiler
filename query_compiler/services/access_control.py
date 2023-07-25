@@ -1,13 +1,13 @@
-import typing
 import requests
+
 from query_compiler.errors.query_parse_errors import AccessDeniedError, QueryCompilerError
 from query_compiler.schemas.attribute import Attribute, Field
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.configs.settings import settings
 
 
-def check_access(identity_id: str, attributes: typing.List[Attribute]):
-    fields: typing.List[str] = [
+def check_access(identity_id: str, attributes: list[Attribute]):
+    fields: list[str] = [
         attr.field for attr in attributes if isinstance(attr, Field)
     ]
     resources = {}

@@ -16,10 +16,7 @@ def main():
 
     with RabbitMQService() as rabbit_mq:
         def callback(
-                ch: pika.channel.Channel,
-                method: pika.spec.Basic.Deliver,
-                properties: pika.BasicProperties,
-                body: str
+                ch: pika.channel.Channel, method: pika.spec.Basic.Deliver, properties: pika.BasicProperties, body: str
         ):
             guid = None
             try:
@@ -30,8 +27,10 @@ def main():
                 LOG.info(f'Received task for {guid}')
                 sql_query = generate_sql_query(query, identity_id)
                 LOG.info(f'Compiled task {guid}')
+                conn_string = payload['conn_string']
+                run_guid = payload['run_guid']
 
-                rabbit_mq.publish_sql_query(guid, sql_query)
+                rabbit_mq.publish_sql_query(guid, sql_query, conn_string, run_guid)
                 LOG.info(f'Task {guid} sent to broker')
                 ch.basic_ack(delivery_tag=method.delivery_tag)
             except AccessDeniedError as exc:
