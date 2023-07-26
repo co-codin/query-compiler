@@ -115,10 +115,12 @@ class RabbitMQService:
         LOG.info("Starting consuming...")
         self._request_channel.start_consuming()
 
-    def publish_sql_query(self, guid: str, sql_query: str):
+    def publish_sql_query(self, guid: str, sql_query: str, conn_string: str, run_guid: str):
         self._publish_status(guid, {
             'query': sql_query,
             'status': 'compiled',
+            'conn_string': conn_string,
+            'run_guid': run_guid
         })
 
     def publish_sql_error(self, guid: str, error: str):

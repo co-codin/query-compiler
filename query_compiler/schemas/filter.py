@@ -6,7 +6,7 @@ from datetime import date, datetime
 from psycopg import sql
 
 from query_compiler.configs.settings import settings
-from query_compiler.schemas.attribute import Attribute, Aggregate
+from query_compiler.schemas.attribute import Attribute, Aggregate, Alias
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.errors.schemas_errors import (
     FilterConvertError, FilterValueCastError, UnknownAggregationFunctionError,
@@ -23,17 +23,14 @@ class Filter(ABC):
             try:
                 return class_(record)
             except (KeyError, ValueError):
-                LOG.info(
-                    f"Record {record} couldn't be converted to "
-                    f"{class_.__name__}"
-                )
+                LOG.info(f"Record {record} couldn't be converted to {class_.__name__}")
         raise FilterConvertError(record)
 
 
 class BooleanFilter(Filter):
     def __init__(self, record):
         self.operator = record['operator']
-        if self.operator.lower() not in ('and', 'or'):
+        if self.operator.lower() not in ('and', 'or', 'not'):
             raise ValueError()
         self.values = [Filter.get(r) for r in record['values']]
 
@@ -47,20 +44,19 @@ class SimpleFilter(Filter):
         'float': lambda val: val if isinstance(val, float) else float(val),
         'string': lambda val: val if isinstance(val, str) else str(val),
         'bool': lambda val: val if isinstance(val, bool) else bool(val),
-        'date': lambda val:
-        val if isinstance(val, date)
-        else datetime.strptime(val, '%Y-%m-%d').date()
+        'date': lambda val: val if isinstance(val, date) else datetime.strptime(val, '%Y-%m-%d').date(),
+        'datetime': lambda val: val if isinstance(val, datetime) else datetime.strptime(val, '%Y-%m-%d'),
+
+        'list': lambda val: val if isinstance(val, list) else list(val)
     }
 
     def __init__(self, record):
         self.operator = record['operator']
-        self.attr = Attribute.get(record)
+        self.attr = Alias(record)
         self.value = record['value']
 
     def __eq__(self, other):
-        return self.operator == other.operator \
-               and self.attr == other.attr \
-               and self.value == other.value
+        return self.operator == other.operator and self.attr == other.attr and self.value == other.value
 
     @property
     def value(self):
@@ -88,7 +84,9 @@ class SimpleFilter(Filter):
 
     def _get_attr_type_name(self) -> str:
         attr = self.attr.attr
-        if isinstance(attr, Aggregate):
+        if self.operator in ('between', 'in'):
+            type_name = 'list'
+        elif isinstance(attr, Aggregate):
             """
             Check for an aggregate function
             if it's count then type_name is int

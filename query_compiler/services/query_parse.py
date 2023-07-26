@@ -1,6 +1,7 @@
+import json
 import logging
 
-from typing import Dict, Tuple, cast, Union, Literal, List
+from typing import Literal, cast
 
 from query_compiler.utils.parse_utils import deserialize_json_query
 from query_compiler.schemas.attribute import Attribute, Alias, Aggregate, Field
@@ -14,6 +15,102 @@ from query_compiler.errors.query_parse_errors import (
 )
 
 LOG = logging.getLogger(__name__)
+
+test_dict = {
+    "aliases": {
+        "dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key": {
+            "attr": {
+                "db_link": "dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key",
+                "display": True
+            }
+        },
+        "dwh_i10_dev.dv_raw.diagnosisparam_hub.diagnosisparam_diagnosis_link.diagnosis_hub._batchid": {
+            "attr": {
+                "db_link": "dwh_i10_dev.dv_raw.diagnosisparam_hub.diagnosisparam_diagnosis_link.diagnosis_hub._batchid",
+                "display": True
+            }
+        },
+        "sum.dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key": {
+            "aggregate": {
+                "function": "sum",
+                "db_link": "dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key",
+                "display": False
+            }
+        },
+        "avg.dwh_i10_dev.dv_raw.diagnosisparam_hub.diagnosisparam_diagnosis_link.diagnosis_hub._batchid": {
+            "aggregate": {
+                "function": "avg",
+                "db_link": "dwh_i10_dev.dv_raw.diagnosisparam_hub.diagnosisparam_diagnosis_link.diagnosis_hub._batchid",
+                "display": False
+            }
+        }
+    },
+    "filter": {
+        "key": "asdasd",
+        "operator": "and",
+        "values": [
+            {
+                "key": "asdasd",
+                "operator": "not",
+                "values": [
+                    {
+                        "alias": "dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key",
+                        "value": 10,
+                        "operator": "<"
+                    }
+                ]
+            },
+            {
+                "key": "asdasd",
+                "operator": "between",
+                "alias": "dwh_i10_dev.dv_raw.diagnosisparam_hub.diagnosisparam_diagnosis_link.diagnosis_hub._batchid",
+                "value": [1, 10]
+            }
+        ]
+    },
+    'group': [
+        "dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key",
+        "dwh_i10_dev.dv_raw.diagnosisparam_hub.diagnosisparam_diagnosis_link.diagnosis_hub._batchid"
+    ],
+    'having': {
+        "key": "asdasd",
+        'operator': 'and',
+        'values': [
+            {
+                "key": "asdasd",
+                'operator': 'not',
+                'values': [
+                    {
+                        "key": "asdasd",
+                        'operator': 'in',
+                        'alias': 'sum.dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key',
+                        'value': [100, 200]
+                    }
+                ]
+            },
+            {
+                "key": "asdasd",
+                'operator': '>=',
+                'alias': 'avg.dwh_i10_dev.dv_raw.diagnosisparam_hub.diagnosisparam_diagnosis_link.diagnosis_hub._batchid',
+                'value': 5
+            }
+        ]
+    }
+}
+
+test_dict = {
+    'aliases': {
+        'dwh_i10_dev.dv_raw.doctor_sat.idposition': {
+            'attr': {'db_link': 'dwh_i10_dev.dv_raw.doctor_sat.idposition', 'display': True}
+        },
+        'dwh_i10_dev.dv_raw.doctor_sat.doctor_hub.doctor_person_link.person_hub.person_sat.idsex': {
+            'attr': {
+                'db_link': 'dwh_i10_dev.dv_raw.doctor_sat.doctor_hub.doctor_person_link.person_hub.person_sat.idsex',
+                'display': True
+            }
+        },
+    }
+}
 
 
 def generate_sql_query(query: str, identity_id: str) -> str:
@@ -44,17 +141,15 @@ def _generate_sql_query(query: str, identity_id: str) -> str:
     return sql_query
 
 
-def _parse_query(query: Dict) -> Tuple[
-    List[Attribute],
-    Filter,
-    List[Attribute],
-    Filter
-]:
+def _parse_query(query: dict) -> tuple[list[Attribute], Filter, list[Attribute], Filter]:
     """Function for parsing json query and creating schemas objects"""
     LOG.info(f"Starting parsing the following query {query}")
 
     _parse_aliases(query)
-    attributes = _parse_attributes(query)
+    attributes = Attribute.all_attributes
+    aliases = Alias.all_aliases
+
+    # attributes = _parse_attributes(query)
     groups = _parse_group(query)
 
     _load_missing_attribute_data()
@@ -67,21 +162,23 @@ def _parse_query(query: Dict) -> Tuple[
 
 
 def _load_missing_attribute_data():
+    LOG.info('Loading missing attrs...')
     missing_attrs = _get_missing_attribute_names()
     if missing_attrs:
         DataCatalog.load_missing_attr_data_list(missing_attrs)
 
 
-def _get_missing_attribute_names() -> List[str]:
-    return [
-        attribute.id
-        for attribute in Attribute.all_attributes
-        if (isinstance(attribute, Field) and
-            not DataCatalog.is_field_in_attributes_dict(attribute.id))
-    ]
+def _get_missing_attribute_names() -> list[str]:
+    missing_attrs = []
+    for attribute in Attribute.all_attributes:
+        if isinstance(attribute, Field) and not DataCatalog.is_field_in_attributes_dict(attribute.id):
+            missing_attrs.append(attribute.id)
+        elif isinstance(attribute, Aggregate) and not DataCatalog.is_field_in_attributes_dict(attribute.field.id):
+            missing_attrs.append(attribute.field.id)
+    return missing_attrs
 
 
-def _parse_aliases(query: Dict):
+def _parse_aliases(query: dict):
     try:
         for alias, record in query['aliases'].items():
             Alias.all_aliases[alias] = Attribute.get(record)
@@ -89,7 +186,7 @@ def _parse_aliases(query: Dict):
         LOG.info(f"There's no aliases in the query {query}")
 
 
-def _parse_attributes(query: Dict) -> Union[List[Attribute], None]:
+def _parse_attributes(query: dict) -> list[Attribute] | None:
     """Parses attributes of the input query"""
     try:
         attr_list = []
@@ -107,46 +204,40 @@ def _parse_attributes(query: Dict) -> Union[List[Attribute], None]:
         raise NoAttributesInInputQuery(query)
 
 
-def _parse_group(query: Dict) -> Union[List[Attribute], None]:
+def _parse_group(query: dict) -> list[Attribute] | None:
     """Parses group of the input query"""
-    if 'group' in query:
+    try:
         group_attrs = []
         for record in query['group']:
-            if record['field'] not in map(_get_attr_field,
-                                          Attribute.all_attributes):
+            if record not in map(_get_attr_field, Attribute.all_attributes):
                 raise GroupByError()
-            group_attrs.append(Attribute.get(record))
+            group_attrs.append(Attribute.get({'attr': {'db_link': record}}))
         return group_attrs
-    else:
+    except KeyError:
         LOG.info(f"There's no group in the query {query}")
 
 
-def _get_attr_field(attribute):
+def _get_attr_field(attribute) -> str:
     """
     Extracts field from Attribute object. The cases are as follows:
     1) Field: attribute.field
     2) Aggregate: attribute.field.field
-    3) Alias -> Field: attribute.attr.field
-    4) Alias -> Aggregate: attribute.attr.field.field
     :param attribute: Attribute
     :return: str
     """
-    attr = attribute.attr  # in case attribute is Alias
-    return attr.field if isinstance(attr, Field) else attr.field.field
+    return attribute.field if isinstance(attribute, Field) else attribute.field.field
 
 
-def _parse_filter(
-        query: Dict,
-        key: Literal['filter', 'having']
-) -> Union[Filter, None]:
+def _parse_filter(query: dict, key: Literal['filter', 'having']) -> Filter | None:
     """Parses filter and having sections of the input query"""
+    LOG.info(f'Parsing {key}...')
     try:
-        return Filter.get(query[key])
+        return Filter.get(query[key]) if query[key] else None
     except KeyError:
         LOG.info(f"There's no {key} in the query {query}")
 
 
-def _build_join_hierarchy() -> Tuple[str, List[Relation]]:
+def _build_join_hierarchy() -> tuple[str, list[Relation]]:
     """Function for building join hierarchy of the json query"""
     LOG.info("Starting building join hierarchy")
     root_table_name = set()
@@ -174,11 +265,11 @@ def _build_join_hierarchy() -> Tuple[str, List[Relation]]:
 
 
 def _build_sql_query(
-        attributes: List[Attribute],
+        attributes: list[Attribute],
         root_table_name: str,
-        tables: List[Relation],
+        tables: list[Relation],
         filter_: Filter,
-        groups: List[Attribute],
+        groups: list[Attribute],
         having: Filter,
 ) -> str:
     """Function for building sql query for a particular database from
@@ -190,8 +281,7 @@ def _build_sql_query(
     where = _build_filter_clause(filter_, key='where')
     group_by = _build_attributes_clause(groups, key='group by')
     having = _build_filter_clause(having, key='having')
-    sql_query = _piece_sql_statements_together(select, tables, where, group_by,
-                                               having)
+    sql_query = _piece_sql_statements_together(select, tables, where, group_by, having)
 
     LOG.info("SQL query building successfully completed")
     return sql_query
@@ -201,18 +291,19 @@ def _piece_sql_statements_together(*args):
     return ' '.join(filter(lambda item: item is not None, args))
 
 
-def _build_attributes_clause(
-        attributes: List[Attribute],
-        key: Literal['select', 'group by']
-):
+def _build_attributes_clause(attributes: list[Attribute], key: Literal['select', 'group by']):
     """Builds select and group by clauses"""
     if attributes:
-        attributes_to_append = (_get_pg_attribute(attr) for attr in attributes)
+        attributes_to_append = (
+            _get_pg_attribute(attr)
+            for attr in attributes
+            if (key == 'select' and attr.display) or key == 'group by'
+        )
         pg_attributes = ', '.join(attributes_to_append)
         return f"{key} {pg_attributes}"
 
 
-def _build_from_clause(root_table_name: str, relations: List[Relation]):
+def _build_from_clause(root_table_name: str, relations: list[Relation]):
     """Builds from and join clauses"""
     from_to_append = (
         f'join {rel.table} on '
@@ -249,17 +340,27 @@ def _get_pg_attribute(attribute: Attribute) -> str:
 
     if isinstance(attribute, Aggregate):
         db_name = DataCatalog.get_field(attribute.field.id)
-        return f'{attribute.func}({table.name}.{db_name})'
+        # table_field_name = db_name.split('.', maxsplit=1)[1]
+        # ns = table.name.split('.', maxsplit=2)[0]
+        # return f'{attribute.func}({ns}.{table_field_name})'
+        return f'{attribute.func}({db_name})'
     else:
         db_name = DataCatalog.get_field(attribute.id)
-        return f'{table.name}.{db_name}'
+        # table_field_name = db_name.split('.', maxsplit=1)[1]
+        # ns = table.name.split('.', maxsplit=2)[0]
+        # return f'{ns}.{table_field_name}'
+        return db_name
 
 
 def _get_pg_filter(filter_: Filter) -> str:
     if isinstance(filter_, SimpleFilter):
-        return f'{_get_pg_attribute(filter_.attr)} ' \
-               f'{filter_.operator} {filter_.value}'
+        return f'{_get_pg_attribute(filter_.attr)} {filter_.operator} {filter_.value}'
     else:
         filter_ = cast(BooleanFilter, filter_)
         parts = (f'({_get_pg_filter(part)})' for part in filter_.values)
         return f' {filter_.operator} '.join(parts)
+
+
+if __name__ == '__main__':
+    compiled_query = generate_sql_query(json.dumps(test_dict), 'test guid')
+    print(compiled_query)

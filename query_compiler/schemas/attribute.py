@@ -21,7 +21,7 @@ class Attribute(ABC):
 
     @classmethod
     def get(cls, record):
-        for class_ in (Alias, Field, Aggregate):
+        for class_ in (Field, Aggregate):
             try:
                 attr = class_(record)
                 cls.all_attributes.add(attr)
@@ -40,7 +40,8 @@ class Attribute(ABC):
 
 class Field(Attribute):
     def __init__(self, record):
-        self.field = record['field']
+        self.field = record['attr']['db_link']
+        self.display = record['attr'].get('display', None)
 
     def __hash__(self):
         return hash(self.field)
@@ -92,7 +93,14 @@ class Alias(Attribute):
 class Aggregate(Attribute):
     def __init__(self, record):
         self.func = record['aggregate']['function']
-        self.field = Attribute.get(record['aggregate'])
+        self.field = Field(
+            {
+                'attr': {
+                    'db_link': record['aggregate']['db_link']
+                }
+            }
+        )
+        self.display = record['aggregate']['display']
 
     def __hash__(self):
         return hash((self.func, self.field))

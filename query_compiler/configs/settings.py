@@ -1,4 +1,3 @@
-from typing import Tuple
 from pydantic import BaseSettings
 
 
@@ -28,15 +27,15 @@ class Settings(BaseSettings):
     data_catalog_url: str = "http://data-catalog.lan:8000"
     retries: int = 5
     timeout: int = 10
-    retry_status_list: Tuple[int, ...] = (429, 500, 502, 503, 504)
-    retry_method_list: Tuple[str, ...] = ('GET',)
+    retry_status_list: tuple[int, ...] = (429, 500, 502, 503, 504)
+    retry_method_list: tuple[str, ...] = ('GET',)
 
     # IAM constants
     iam_url: str = "http://iam.lan:8000"
 
     # Schemas constants
-    pg_aggregation_functions: Tuple[str, ...] = ('count', 'avg', 'sum', 'min', 'max')
-    operator_functions: Tuple[str, ...] = ('<', '<=', '=', '>', '>=', 'like')
+    pg_aggregation_functions: tuple[str, ...] = ('count', 'avg', 'sum', 'min', 'max')
+    operator_functions: tuple[str, ...] = ('<', '<=', '=', '>', '>=', 'like', 'between', 'in')
 
     class Config:
         env_prefix = "dwh_query_compiler_"
