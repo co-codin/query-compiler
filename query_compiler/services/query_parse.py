@@ -17,6 +17,7 @@ from query_compiler.errors.query_parse_errors import (
 LOG = logging.getLogger(__name__)
 
 test_dict = {
+    "distinct": True,
     "aliases": {
         "dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key": {
             "attr": {
@@ -68,10 +69,10 @@ test_dict = {
             }
         ]
     },
-    'group': [
-        "dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key",
-        "dwh_i10_dev.dv_raw.diagnosisparam_hub.diagnosisparam_diagnosis_link.diagnosis_hub._batchid"
-    ],
+    # 'group': [
+    #     "dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key",
+    #     "dwh_i10_dev.dv_raw.diagnosisparam_hub.diagnosisparam_diagnosis_link.diagnosis_hub._batchid"
+    # ],
     'having': {
         "key": "asdasd",
         'operator': 'and',
@@ -99,6 +100,7 @@ test_dict = {
 }
 
 test_dict = {
+    'distinct': False,
     'aliases': {
         'dwh_i10_dev.dv_raw.doctor_sat.idposition': {
             'attr': {'db_link': 'dwh_i10_dev.dv_raw.doctor_sat.idposition', 'display': True}
@@ -132,7 +134,7 @@ def _generate_sql_query(query: str, identity_id: str) -> str:
     check_access(identity_id, attributes)
     root_table_name, tables = _build_join_hierarchy()
     sql_query = _build_sql_query(
-        attributes, root_table_name, tables, filter_, groups, having
+        attributes, root_table_name, tables, filter_, groups, having, dict_query['distinct']
     )
 
     LOG.info("Generating SQL query from the json query successfully "
@@ -208,10 +210,14 @@ def _parse_group(query: dict) -> list[Attribute] | None:
     """Parses group of the input query"""
     try:
         group_attrs = []
-        for record in query['group']:
-            if record not in map(_get_attr_field, Attribute.all_attributes):
-                raise GroupByError()
-            group_attrs.append(Attribute.get({'attr': {'db_link': record}}))
+        for record in query['aliases'].values():
+            try:
+                record = record['aggregate']['db_link']
+                if record not in map(_get_attr_field, Attribute.all_attributes):
+                    raise GroupByError()
+                group_attrs.append(Attribute.get({'attr': {'db_link': record}}))
+            except KeyError:
+                continue
         return group_attrs
     except KeyError:
         LOG.info(f"There's no group in the query {query}")
@@ -271,15 +277,16 @@ def _build_sql_query(
         filter_: Filter,
         groups: list[Attribute],
         having: Filter,
+        distinct: bool
 ) -> str:
     """Function for building sql query for a particular database from
     schemas objects"""
     LOG.info("Starting building SQL query")
 
-    select = _build_attributes_clause(attributes, key='select')
+    select = _build_attributes_clause(attributes, key='select', distinct=distinct)
     tables = _build_from_clause(root_table_name, tables)
     where = _build_filter_clause(filter_, key='where')
-    group_by = _build_attributes_clause(groups, key='group by')
+    group_by = _build_attributes_clause(groups, key='group by', distinct=False)
     having = _build_filter_clause(having, key='having')
     sql_query = _piece_sql_statements_together(select, tables, where, group_by, having)
 
@@ -291,7 +298,7 @@ def _piece_sql_statements_together(*args):
     return ' '.join(filter(lambda item: item is not None, args))
 
 
-def _build_attributes_clause(attributes: list[Attribute], key: Literal['select', 'group by']):
+def _build_attributes_clause(attributes: list[Attribute], key: Literal['select', 'group by'], distinct: bool):
     """Builds select and group by clauses"""
     if attributes:
         attributes_to_append = (
@@ -300,7 +307,7 @@ def _build_attributes_clause(attributes: list[Attribute], key: Literal['select',
             if (key == 'select' and attr.display) or key == 'group by'
         )
         pg_attributes = ', '.join(attributes_to_append)
-        return f"{key} {pg_attributes}"
+        return f"{key} distinct {pg_attributes}" if distinct else f"{key} {pg_attributes}"
 
 
 def _build_from_clause(root_table_name: str, relations: list[Relation]):
