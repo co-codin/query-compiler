@@ -27,9 +27,7 @@ def test_is_field_in_attributes_dict(field_name, is_in_attributes):
 def test_get_http_session_positive():
     url = settings.data_catalog_url
     retry_strategy = Retry(
-        total=settings.retries,
-        status_forcelist=settings.retry_status_list,
-        method_whitelist=settings.retry_method_list
+        total=settings.retries
     )
     expected_http_session = requests.Session()
     expected_http_session.hooks["response"] = [
