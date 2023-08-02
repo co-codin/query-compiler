@@ -58,8 +58,6 @@ class DataCatalog:
     def _get_http_session(url: str) -> requests.Session:
         retry_strategy = Retry(
             total=settings.retries,
-            status_forcelist=settings.retry_status_list,
-            method_whitelist=settings.retry_method_list
         )
         http_session = requests.Session()
         http_session.hooks["response"] = [
