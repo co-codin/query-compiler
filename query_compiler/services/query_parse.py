@@ -357,7 +357,10 @@ def _get_pg_attribute(attribute: Attribute) -> str:
 def _get_pg_filter(filter_: Filter, is_not: bool = False) -> str:
     if isinstance(filter_, SimpleFilter):
         operator = settings.pg_operator_to_not_functions[filter_.operator] if is_not else filter_.operator
-        return f'{_get_pg_attribute(filter_.attr)} {operator} {filter_.value}'
+        return (
+            f'{_get_pg_attribute(filter_.attr)} {operator} {filter_.value}' if filter_.value
+            else f'{_get_pg_attribute(filter_.attr)} {operator}'
+        )
     else:
         filter_ = cast(BooleanFilter, filter_)
         parts = (f"({_get_pg_filter(part, is_not=filter_.operator == 'not')})" for part in filter_.values)

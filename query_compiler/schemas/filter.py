@@ -70,20 +70,22 @@ class SimpleFilter(Filter):
 
     @value.setter
     def value(self, value):
-        attr_type_name = self._get_attr_type_name()
-        try:
-            self._value = self._type_names_to_types[attr_type_name](value)
-            if attr_type_name != 'tuple':
-                self._value = sql.quote(self._value)
-            match self.operator:
-                case 'in':
-                    self._value = f"({','.join((str(item) for item in self._value))})"
-                case 'between':
-                    left, right = self._value
-                    self._value = f"{str(left)} and {str(right)}"
-
-        except (TypeError, ValueError) as exc:
-            raise FilterValueCastError(attr_type_name, value) from exc
+        if self.operator == 'is null':
+            self._value = None
+        else:
+            attr_type_name = self._get_attr_type_name()
+            try:
+                self._value = self._type_names_to_types.get(attr_type_name)(value)
+                if attr_type_name != 'tuple':
+                    self._value = sql.quote(self._value)
+                match self.operator:
+                    case 'in':
+                        self._value = f"({','.join((str(item) for item in self._value))})"
+                    case 'between':
+                        left, right = self._value
+                        self._value = f"{str(left)} and {str(right)}"
+            except (TypeError, ValueError) as exc:
+                raise FilterValueCastError(attr_type_name, value) from exc
 
     @property
     def operator(self):
