@@ -72,6 +72,8 @@ class SimpleFilter(Filter):
     def value(self, value):
         attr_type_name = self._get_attr_type_name()
         try:
+            if attr_type_name != 'tuple':
+                self._value = sql.quote(value)
             self._value = self._type_names_to_types[attr_type_name](value)
         except (TypeError, ValueError) as exc:
             raise FilterValueCastError(attr_type_name, value) from exc
