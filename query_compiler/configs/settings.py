@@ -35,7 +35,18 @@ class Settings(BaseSettings):
 
     # Schemas constants
     pg_aggregation_functions: tuple[str, ...] = ('count', 'avg', 'sum', 'min', 'max')
-    operator_functions: tuple[str, ...] = ('<', '<=', '=', '>', '>=', 'like', 'between', 'in')
+    pg_operator_functions: tuple[str, ...] = ('<', '<=', '=', '>', '>=', 'like', 'between', 'in', 'is null')
+    pg_operator_to_not_functions: dict[str, str] = {
+        '<': '>',
+        '<=': '>=',
+        '=': '<>',
+        '>': '<',
+        '>=': '<=',
+        'like': 'not like',
+        'between': 'not between',
+        'in': 'not in',
+        'is null': 'is not null'
+    }
 
     class Config:
         env_prefix = "dwh_query_compiler_"

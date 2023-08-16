@@ -14,6 +14,8 @@ from query_compiler.errors.query_parse_errors import (
     NoRootTable, NotOneRootTable, GroupByError
 )
 
+from query_compiler.configs.settings import settings
+
 LOG = logging.getLogger(__name__)
 
 test_dict = {
@@ -343,28 +345,22 @@ Each type of database - each class with these 2 overridden methods
 
 def _get_pg_attribute(attribute: Attribute) -> str:
     attribute = attribute.attr
-    table = attribute.table
 
     if isinstance(attribute, Aggregate):
         db_name = DataCatalog.get_field(attribute.field.id)
-        # table_field_name = db_name.split('.', maxsplit=1)[1]
-        # ns = table.name.split('.', maxsplit=2)[0]
-        # return f'{attribute.func}({ns}.{table_field_name})'
         return f'{attribute.func}({db_name})'
     else:
         db_name = DataCatalog.get_field(attribute.id)
-        # table_field_name = db_name.split('.', maxsplit=1)[1]
-        # ns = table.name.split('.', maxsplit=2)[0]
-        # return f'{ns}.{table_field_name}'
         return db_name
 
 
-def _get_pg_filter(filter_: Filter) -> str:
+def _get_pg_filter(filter_: Filter, is_not: bool = False) -> str:
     if isinstance(filter_, SimpleFilter):
-        return f'{_get_pg_attribute(filter_.attr)} {filter_.operator} {filter_.value}'
+        operator = settings.pg_operator_to_not_functions[filter_.operator] if is_not else filter_.operator
+        return f'{_get_pg_attribute(filter_.attr)} {operator} {filter_.value}'
     else:
         filter_ = cast(BooleanFilter, filter_)
-        parts = (f'({_get_pg_filter(part)})' for part in filter_.values)
+        parts = (f"({_get_pg_filter(part, is_not=filter_.operator == 'not')})" for part in filter_.values)
         return f' {filter_.operator} '.join(parts)
 
 
