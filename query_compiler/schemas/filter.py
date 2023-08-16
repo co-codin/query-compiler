@@ -43,7 +43,7 @@ class SimpleFilter(Filter):
     _type_names_to_types = {
         'int': lambda val: val if isinstance(val, int) else int(val),
         'float': lambda val: val if isinstance(val, float) else float(val),
-        'string': lambda val: val if isinstance(val, str) else str(val),
+        'str': lambda val: val if isinstance(val, str) else str(val),
         'bool': lambda val: val if isinstance(val, bool) else bool(val),
         'date': lambda val: val if isinstance(val, date) else datetime.strptime(val, '%Y-%m-%d').date(),
         'datetime': lambda val: val if isinstance(val, datetime) else datetime.strptime(val, '%Y-%m-%d'),
@@ -72,9 +72,9 @@ class SimpleFilter(Filter):
     def value(self, value):
         attr_type_name = self._get_attr_type_name()
         try:
-            if attr_type_name != 'tuple':
-                self._value = sql.quote(value)
             self._value = self._type_names_to_types[attr_type_name](value)
+            if attr_type_name != 'tuple':
+                self._value = sql.quote(self._value)
         except (TypeError, ValueError) as exc:
             raise FilterValueCastError(attr_type_name, value) from exc
 
