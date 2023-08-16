@@ -2,11 +2,12 @@ import logging
 
 from abc import ABC
 from datetime import date, datetime
+from typing import Any
 
 from psycopg import sql
 
 from query_compiler.configs.settings import settings
-from query_compiler.schemas.attribute import Attribute, Aggregate, Alias
+from query_compiler.schemas.attribute import Aggregate, Alias
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.errors.schemas_errors import (
     FilterConvertError, FilterValueCastError, UnknownAggregationFunctionError,
@@ -42,13 +43,18 @@ class SimpleFilter(Filter):
     _type_names_to_types = {
         'int': lambda val: val if isinstance(val, int) else int(val),
         'float': lambda val: val if isinstance(val, float) else float(val),
-        'string': lambda val: val if isinstance(val, str) else str(val),
+        'str': lambda val: val if isinstance(val, str) else str(val),
         'bool': lambda val: val if isinstance(val, bool) else bool(val),
         'date': lambda val: val if isinstance(val, date) else datetime.strptime(val, '%Y-%m-%d').date(),
         'datetime': lambda val: val if isinstance(val, datetime) else datetime.strptime(val, '%Y-%m-%d'),
-
-        'list': lambda val: val if isinstance(val, list) else list(val)
+        'tuple': lambda val: SimpleFilter._convert_to_tuple(val)
     }
+
+    @staticmethod
+    def _convert_to_tuple(value: str) -> tuple[Any, ...]:
+        value = value.strip()
+        white_spaces_removed = ''.join(sql.quote(value)[2:-2].split())
+        return tuple(white_spaces_removed.split(','))
 
     def __init__(self, record):
         self.operator = record['operator']
@@ -95,7 +101,7 @@ class SimpleFilter(Filter):
     def _get_attr_type_name(self) -> str:
         attr = self.attr.attr
         if self.operator in ('between', 'in'):
-            type_name = 'list'
+            type_name = 'tuple'
         elif isinstance(attr, Aggregate):
             """
             Check for an aggregate function
