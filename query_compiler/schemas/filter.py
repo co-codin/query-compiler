@@ -77,7 +77,7 @@ class SimpleFilter(Filter):
 
     @operator.setter
     def operator(self, operator: str):
-        if operator.lower() not in settings.operator_functions:
+        if operator.lower() not in settings.pg_operator_functions:
             raise UnknownOperatorFunctionError(operator)
         else:
             self._operator = operator
