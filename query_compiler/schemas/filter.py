@@ -75,6 +75,13 @@ class SimpleFilter(Filter):
             self._value = self._type_names_to_types[attr_type_name](value)
             if attr_type_name != 'tuple':
                 self._value = sql.quote(self._value)
+            match self.operator:
+                case 'in':
+                    self._value = f"({','.join((str(item) for item in self._value))})"
+                case 'between':
+                    left, right = self._value
+                    self._value = f"{str(left)} and {str(right)}"
+
         except (TypeError, ValueError) as exc:
             raise FilterValueCastError(attr_type_name, value) from exc
 
