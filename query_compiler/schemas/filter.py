@@ -53,8 +53,8 @@ class SimpleFilter(Filter):
     @staticmethod
     def _convert_to_tuple(value: str) -> tuple[Any, ...]:
         value = value.strip()
-        white_spaces_removed = ''.join(sql.quote(value)[2:-2].split())
-        return tuple(white_spaces_removed.split(','))
+        split_value = value[1:-1].split(',')
+        return tuple((val.strip() for val in split_value))
 
     def __init__(self, record):
         self.operator = record['operator']
@@ -80,10 +80,10 @@ class SimpleFilter(Filter):
                     self._value = sql.quote(self._value)
                 match self.operator:
                     case 'in':
-                        self._value = f"({','.join((str(item) for item in self._value))})"
+                        self._value = f"({','.join(map(sql.quote, self._value))})"
                     case 'between':
                         left, right = self._value
-                        self._value = f"{str(left)} and {str(right)}"
+                        self._value = f"{sql.quote(left)} and {sql.quote(right)}"
             except (TypeError, ValueError) as exc:
                 raise FilterValueCastError(attr_type_name, value) from exc
 
