@@ -123,10 +123,11 @@ class RabbitMQService:
             'run_guid': run_guid
         })
 
-    def publish_sql_error(self, guid: str, error: str):
+    def publish_sql_error(self, guid: str, error: str, run_guid: str):
         self._publish_status(guid, {
             'error': error,
             'status': 'error',
+            'run_guid': run_guid
         })
 
     def _publish_status(self, guid: str, data: dict):

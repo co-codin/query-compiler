@@ -19,16 +19,17 @@ def main():
                 ch: pika.channel.Channel, method: pika.spec.Basic.Deliver, properties: pika.BasicProperties, body: str
         ):
             guid = None
+            run_guid = None
             try:
                 payload = deserialize_json_query(body)
                 guid = payload['guid']
                 query = payload['query']
                 identity_id = payload['identity_id']
+                run_guid = payload['run_guid']
                 LOG.info(f'Received task for {guid}')
                 sql_query = generate_sql_query(query, identity_id)
                 LOG.info(f'Compiled task {guid}')
                 conn_string = payload['conn_string']
-                run_guid = payload['run_guid']
 
                 rabbit_mq.publish_sql_query(guid, sql_query, conn_string, run_guid)
                 LOG.info(f'Task {guid} sent to broker')
@@ -39,16 +40,16 @@ def main():
                     delivery_tag=method.delivery_tag,
                     requeue=False
                 )
-                if guid:
-                    rabbit_mq.publish_sql_error(guid, f'Access denied for {exc.denied_fields}')
+                if guid and run_guid:
+                    rabbit_mq.publish_sql_error(guid, f'Access denied for {exc.denied_fields}', run_guid)
             except Exception as exc:
                 LOG.error(str(exc))
                 ch.basic_reject(
                     delivery_tag=method.delivery_tag,
                     requeue=False
                 )
-                if guid:
-                    rabbit_mq.publish_sql_error(guid, 'Failed to compile')
+                if guid and run_guid:
+                    rabbit_mq.publish_sql_error(guid, 'Failed to compile', run_guid)
 
         rabbit_mq.set_callback_function(callback)
         rabbit_mq.start_consuming()
