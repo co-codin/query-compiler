@@ -46,7 +46,7 @@ class SimpleFilter(Filter):
         'str': lambda val: val if isinstance(val, str) else str(val),
         'bool': lambda val: val if isinstance(val, bool) else bool(val),
         'date': lambda val: val if isinstance(val, date) else datetime.strptime(val, '%Y-%m-%d').date(),
-        'datetime': lambda val: val if isinstance(val, datetime) else datetime.strptime(val, '%Y-%m-%d'),
+        'datetime': lambda val: val if isinstance(val, datetime) else datetime.strptime(val, '%Y-%m-%d %H:%M:%S'),
         'tuple': lambda val: SimpleFilter._convert_to_tuple(val)
     }
 
