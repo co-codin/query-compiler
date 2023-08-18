@@ -1,120 +1,22 @@
 import json
 import logging
 
-from typing import Literal, cast
+from typing import Literal, cast, Iterable
 
 from query_compiler.utils.parse_utils import deserialize_json_query
-from query_compiler.schemas.attribute import Attribute, Alias, Aggregate, Field
+from query_compiler.schemas.attribute import Attribute, Aggregate, AliasStorage
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.schemas.filter import Filter, SimpleFilter, BooleanFilter
 from query_compiler.schemas.table import Relation
 from query_compiler.services.access_control import check_access
 from query_compiler.errors.schemas_errors import NoAttributesInInputQuery
-from query_compiler.errors.query_parse_errors import (
-    NoRootTable, NotOneRootTable, GroupByError
-)
+from query_compiler.errors.query_parse_errors import (NoRootTable, NotOneRootTable)
 
 from query_compiler.configs.settings import settings
 
+from query_compiler.schemas.sample_query import test_dict1
+
 LOG = logging.getLogger(__name__)
-
-test_dict = {
-    "distinct": True,
-    "aliases": {
-        "dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key": {
-            "attr": {
-                "db_link": "dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key",
-                "display": True
-            }
-        },
-        "dwh_i10_dev.dv_raw.diagnosisparam_hub.diagnosisparam_diagnosis_link.diagnosis_hub._batchid": {
-            "attr": {
-                "db_link": "dwh_i10_dev.dv_raw.diagnosisparam_hub.diagnosisparam_diagnosis_link.diagnosis_hub._batchid",
-                "display": True
-            }
-        },
-        "sum.dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key": {
-            "aggregate": {
-                "function": "sum",
-                "db_link": "dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key",
-                "display": False
-            }
-        },
-        "avg.dwh_i10_dev.dv_raw.diagnosisparam_hub.diagnosisparam_diagnosis_link.diagnosis_hub._batchid": {
-            "aggregate": {
-                "function": "avg",
-                "db_link": "dwh_i10_dev.dv_raw.diagnosisparam_hub.diagnosisparam_diagnosis_link.diagnosis_hub._batchid",
-                "display": False
-            }
-        }
-    },
-    "filter": {
-        "key": "asdasd",
-        "operator": "and",
-        "values": [
-            {
-                "key": "asdasd",
-                "operator": "not",
-                "values": [
-                    {
-                        "alias": "dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key",
-                        "value": 10,
-                        "operator": "<"
-                    }
-                ]
-            },
-            {
-                "key": "asdasd",
-                "operator": "between",
-                "alias": "dwh_i10_dev.dv_raw.diagnosisparam_hub.diagnosisparam_diagnosis_link.diagnosis_hub._batchid",
-                "value": [1, 10]
-            }
-        ]
-    },
-    # 'group': [
-    #     "dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key",
-    #     "dwh_i10_dev.dv_raw.diagnosisparam_hub.diagnosisparam_diagnosis_link.diagnosis_hub._batchid"
-    # ],
-    'having': {
-        "key": "asdasd",
-        'operator': 'and',
-        'values': [
-            {
-                "key": "asdasd",
-                'operator': 'not',
-                'values': [
-                    {
-                        "key": "asdasd",
-                        'operator': 'in',
-                        'alias': 'sum.dwh_i10_dev.dv_raw.diagnosisparam_hub._biz_key',
-                        'value': [100, 200]
-                    }
-                ]
-            },
-            {
-                "key": "asdasd",
-                'operator': '>=',
-                'alias': 'avg.dwh_i10_dev.dv_raw.diagnosisparam_hub.diagnosisparam_diagnosis_link.diagnosis_hub._batchid',
-                'value': 5
-            }
-        ]
-    }
-}
-
-test_dict = {
-    'distinct': False,
-    'aliases': {
-        'dwh_i10_dev.dv_raw.doctor_sat.idposition': {
-            'attr': {'db_link': 'dwh_i10_dev.dv_raw.doctor_sat.idposition', 'display': True}
-        },
-        'dwh_i10_dev.dv_raw.doctor_sat.doctor_hub.doctor_person_link.person_hub.person_sat.idsex': {
-            'attr': {
-                'db_link': 'dwh_i10_dev.dv_raw.doctor_sat.doctor_hub.doctor_person_link.person_hub.person_sat.idsex',
-                'display': True
-            }
-        },
-    }
-}
 
 
 def generate_sql_query(query: str, identity_id: str) -> str:
@@ -131,61 +33,50 @@ def _generate_sql_query(query: str, identity_id: str) -> str:
     dict_query = deserialize_json_query(query)
     dict_query['_identity_id'] = identity_id
 
-    attributes, filter_, groups, having = _parse_query(dict_query)
+    alias_to_attr, filter_, groups, having = _parse_query(dict_query)
 
-    check_access(identity_id, attributes)
-    root_table_name, tables = _build_join_hierarchy()
+    check_access(identity_id, alias_to_attr.values())
+    root_table_name, tables = _build_join_hierarchy(alias_to_attr.values())
     sql_query = _build_sql_query(
-        attributes, root_table_name, tables, filter_, groups, having, dict_query['distinct']
+        alias_to_attr.values(), root_table_name, tables, filter_, groups, having, dict_query['distinct']
     )
 
-    LOG.info("Generating SQL query from the json query successfully "
-             "completed"
-             )
+    LOG.info("Generating SQL query from the json query successfully completed")
     return sql_query
 
 
-def _parse_query(query: dict) -> tuple[list[Attribute], Filter, list[Attribute], Filter]:
+def _parse_query(query: dict) -> tuple[dict[str, Attribute], Filter, list[Attribute], Filter]:
     """Function for parsing json query and creating schemas objects"""
     LOG.info(f"Starting parsing the following query {query}")
 
     _parse_aliases(query)
-    attributes = Attribute.all_attributes
-    aliases = Alias.all_aliases
 
-    # attributes = _parse_attributes(query)
     groups = _parse_group(query)
 
-    _load_missing_attribute_data()
+    _load_missing_attribute_data(AliasStorage.all_aliases.values())
 
     filter_ = _parse_filter(query, key='filter')
     having = _parse_filter(query, key='having')
 
     LOG.info(f"Query parsing successfully completed")
-    return attributes, filter_, groups, having
+    return AliasStorage.all_aliases, filter_, groups, having
 
 
-def _load_missing_attribute_data():
+def _load_missing_attribute_data(attrs: Iterable[Attribute]):
     LOG.info('Loading missing attrs...')
-    missing_attrs = _get_missing_attribute_names()
+    missing_attrs = _get_missing_attribute_names(attrs)
     if missing_attrs:
         DataCatalog.load_missing_attr_data_list(missing_attrs)
 
 
-def _get_missing_attribute_names() -> list[str]:
-    missing_attrs = []
-    for attribute in Attribute.all_attributes:
-        if isinstance(attribute, Field) and not DataCatalog.is_field_in_attributes_dict(attribute.id):
-            missing_attrs.append(attribute.id)
-        elif isinstance(attribute, Aggregate) and not DataCatalog.is_field_in_attributes_dict(attribute.field.id):
-            missing_attrs.append(attribute.field.id)
-    return missing_attrs
+def _get_missing_attribute_names(attrs: Iterable[Attribute]) -> set[str]:
+    return {attr.id for attr in attrs if not DataCatalog.is_field_in_attributes_dict(attr.id)}
 
 
 def _parse_aliases(query: dict):
     try:
         for alias, record in query['aliases'].items():
-            Alias.all_aliases[alias] = Attribute.get(record)
+            AliasStorage.all_aliases[alias] = Attribute.get(record)
     except KeyError:
         LOG.info(f"There's no aliases in the query {query}")
 
@@ -215,25 +106,12 @@ def _parse_group(query: dict) -> list[Attribute] | None:
         for record in query['aliases'].values():
             try:
                 record = record['aggregate']['db_link']
-                if record not in map(_get_attr_field, Attribute.all_attributes):
-                    raise GroupByError()
                 group_attrs.append(Attribute.get({'attr': {'db_link': record}}))
             except KeyError:
                 continue
         return group_attrs
     except KeyError:
         LOG.info(f"There's no group in the query {query}")
-
-
-def _get_attr_field(attribute) -> str:
-    """
-    Extracts field from Attribute object. The cases are as follows:
-    1) Field: attribute.field
-    2) Aggregate: attribute.field.field
-    :param attribute: Attribute
-    :return: str
-    """
-    return attribute.field if isinstance(attribute, Field) else attribute.field.field
 
 
 def _parse_filter(query: dict, key: Literal['filter', 'having']) -> Filter | None:
@@ -245,13 +123,13 @@ def _parse_filter(query: dict, key: Literal['filter', 'having']) -> Filter | Non
         LOG.info(f"There's no {key} in the query {query}")
 
 
-def _build_join_hierarchy() -> tuple[str, list[Relation]]:
+def _build_join_hierarchy(attrs: Iterable[Attribute]) -> tuple[str, list[Relation]]:
     """Function for building join hierarchy of the json query"""
     LOG.info("Starting building join hierarchy")
     root_table_name = set()
     joined = set()
     relations = []
-    for attr in Attribute.all_attributes:
+    for attr in attrs:
         table = attr.table
         if not table.joins:
             root_table_name.add(table.name)
@@ -273,7 +151,7 @@ def _build_join_hierarchy() -> tuple[str, list[Relation]]:
 
 
 def _build_sql_query(
-        attributes: list[Attribute],
+        attributes: Iterable[Attribute],
         root_table_name: str,
         tables: list[Relation],
         filter_: Filter,
@@ -300,7 +178,7 @@ def _piece_sql_statements_together(*args):
     return ' '.join(filter(lambda item: item is not None, args))
 
 
-def _build_attributes_clause(attributes: list[Attribute], key: Literal['select', 'group by'], distinct: bool):
+def _build_attributes_clause(attributes: Iterable[Attribute], key: Literal['select', 'group by'], distinct: bool):
     """Builds select and group by clauses"""
     if attributes:
         attributes_to_append = (
@@ -332,8 +210,7 @@ def _build_filter_clause(filter_: Filter, key: Literal['where', 'having']):
 
 
 def _clear():
-    Attribute.clear()
-    Alias.clear()
+    AliasStorage.clear()
 
 
 """
@@ -344,8 +221,6 @@ Each type of database - each class with these 2 overridden methods
 
 
 def _get_pg_attribute(attribute: Attribute) -> str:
-    attribute = attribute.attr
-
     if isinstance(attribute, Aggregate):
         db_name = DataCatalog.get_field(attribute.field.id)
         return f'{attribute.func}({db_name})'
@@ -368,5 +243,5 @@ def _get_pg_filter(filter_: Filter, is_not: bool = False) -> str:
 
 
 if __name__ == '__main__':
-    compiled_query = generate_sql_query(json.dumps(test_dict), 'test guid')
+    compiled_query = generate_sql_query(json.dumps(test_dict1), 'test guid')
     print(compiled_query)

@@ -1,6 +1,6 @@
 import pytest
 
-from query_compiler.schemas.attribute import Attribute, Field, Alias, Aggregate
+from query_compiler.schemas.attribute import Attribute, Field, AliasStorage, Aggregate
 from query_compiler.errors.schemas_errors import AttributeConvertError
 
 
@@ -11,7 +11,7 @@ def test_attribute_get_positive(
     expected_attrs = [
         class_(attr)
         for class_, attr in zip(
-            (Field, Alias, Aggregate),
+            (Field, AliasStorage, Aggregate),
             get_field_alias_aggregate_records
         )
     ]

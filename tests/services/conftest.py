@@ -1,6 +1,6 @@
 import pytest
 
-from query_compiler.schemas.attribute import Alias, Attribute, Aggregate, Field
+from query_compiler.schemas.attribute import AliasStorage, Attribute, Aggregate, Field
 from query_compiler.schemas.filter import SimpleFilter, BooleanFilter
 from query_compiler.schemas.table import Relation
 
@@ -43,7 +43,7 @@ def get_group_record(clear_all_attributes):
 
 @pytest.fixture()
 def add_appointments_alias():
-    Alias.all_aliases['appointments'] = Attribute.get(
+    AliasStorage.all_aliases['appointments'] = Attribute.get(
         {
             "aggregate": {
                 "function": "count",
@@ -129,7 +129,7 @@ def get_attrs_and_sql_statement(add_appointments_alias):
     return {
         'attrs': (
             Field({"field": "patient.age"}),
-            Alias({"alias": "appointments"})
+            AliasStorage({"alias": "appointments"})
         ),
         'sql_attr_part': 'patient.age, count(appointment.id)'
     }

@@ -27,16 +27,16 @@ def test_parse_aliases_positive(clear_all_aliases, get_aliases_record):
         )
     }
     _parse_aliases(get_aliases_record)
-    assert expected_aliases == Alias.all_aliases
+    assert expected_aliases == AliasStorage.all_aliases
 
 
 def test_parse_aliases_no_aliases(clear_all_aliases):
     assert _parse_aliases({}) is None
-    assert len(Alias.all_aliases) == 0
+    assert len(AliasStorage.all_aliases) == 0
 
 
 def test_parse_attributes_positive(get_attributes_record):
-    classes = (Field, Alias)
+    classes = (Field, AliasStorage)
     actual_attributes = _parse_attributes(get_attributes_record)
     expected_attributes = []
     for attr_record, class_ in zip(get_attributes_record['attributes'], classes):
@@ -230,7 +230,7 @@ def test_clear(get_aliases_record, get_attributes_record):
     _parse_attributes(get_attributes_record)
     _parse_group(get_attributes_record)
     _clear()
-    assert len(Alias.all_aliases) == 0
+    assert len(AliasStorage.all_aliases) == 0
     assert len(Attribute.all_attributes) == 0
 
 

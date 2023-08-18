@@ -1,7 +1,7 @@
 import pytest
 
 from query_compiler.schemas.data_catalog import DataCatalog
-from query_compiler.schemas.attribute import Alias, Attribute
+from query_compiler.schemas.attribute import AliasStorage, Attribute
 
 
 @pytest.fixture()
@@ -105,7 +105,7 @@ def initiate_data_catalog_attrs():
 
 @pytest.fixture()
 def clear_all_aliases():
-    Alias.all_aliases.clear()
+    AliasStorage.all_aliases.clear()
 
 
 @pytest.fixture()

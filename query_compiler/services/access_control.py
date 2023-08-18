@@ -1,15 +1,15 @@
 import requests
 
+from typing import Iterable
+
 from query_compiler.errors.query_parse_errors import AccessDeniedError, QueryCompilerError
 from query_compiler.schemas.attribute import Attribute, Field
 from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.configs.settings import settings
 
 
-def check_access(identity_id: str, attributes: list[Attribute]):
-    fields: list[str] = [
-        attr.field for attr in attributes if isinstance(attr, Field)
-    ]
+def check_access(identity_id: str, attributes: Iterable[Attribute]):
+    fields = (attr.id for attr in attributes)
     resources = {}
     attr_mapping = {}
     for field in fields:

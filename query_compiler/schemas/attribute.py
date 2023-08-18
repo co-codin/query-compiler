@@ -1,20 +1,15 @@
 import logging
 
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from query_compiler.configs.settings import settings
 from query_compiler.schemas.data_catalog import DataCatalog
-from query_compiler.errors.schemas_errors import (
-    AttributeConvertError, UnknownAggregationFunctionError,
-    NoAliasMappedValueError
-)
+from query_compiler.errors.schemas_errors import AttributeConvertError, UnknownAggregationFunctionError
 
 LOG = logging.getLogger(__name__)
 
 
 class Attribute(ABC):
-    all_attributes = set()
-
     @property
     def attr(self):
         return self
@@ -23,25 +18,31 @@ class Attribute(ABC):
     def get(cls, record):
         for class_ in (Field, Aggregate):
             try:
-                attr = class_(record)
-                cls.all_attributes.add(attr)
-                return attr
+                return class_(record)
             except KeyError:
-                LOG.info(
-                    f"Record {record} couldn't be converted to "
-                    f"{class_.__name__}"
-                )
+                LOG.info(f"Record {record} couldn't be converted to {class_.__name__}")
         raise AttributeConvertError(record)
 
-    @classmethod
-    def clear(cls):
-        cls.all_attributes.clear()
+    @property
+    @abstractmethod
+    def table(self):
+        ...
+
+    @property
+    @abstractmethod
+    def id(self):
+        ...
+
+    @property
+    @abstractmethod
+    def display(self):
+        ...
 
 
 class Field(Attribute):
     def __init__(self, record):
         self.field = record['attr']['db_link']
-        self.display = record['attr'].get('display', None)
+        self._display = record['attr'].get('display', None)
 
     def __hash__(self):
         return hash(self.field)
@@ -57,37 +58,9 @@ class Field(Attribute):
     def id(self):
         return self.field
 
-
-class Alias(Attribute):
-    all_aliases = dict()
-
-    def __init__(self, record):
-        self.alias = record['alias']
-
-    def __hash__(self):
-        return hash(self.alias)
-
-    def __eq__(self, other):
-        return self.alias == other.alias
-
     @property
-    def attr(self):
-        try:
-            return self.all_aliases[self.alias]
-        except KeyError:
-            raise NoAliasMappedValueError(self.alias)
-
-    @property
-    def table(self):
-        return self.attr.table
-
-    @property
-    def id(self):
-        return self.attr.id
-
-    @classmethod
-    def clear(cls):
-        cls.all_aliases.clear()
+    def display(self):
+        return self._display
 
 
 class Aggregate(Attribute):
@@ -100,7 +73,7 @@ class Aggregate(Attribute):
                 }
             }
         )
-        self.display = record['aggregate']['display']
+        self._display = record['aggregate']['display']
 
     def __hash__(self):
         return hash((self.func, self.field))
@@ -122,3 +95,19 @@ class Aggregate(Attribute):
             self._func = func
         else:
             raise UnknownAggregationFunctionError(func)
+
+    @property
+    def id(self):
+        return self.field.id
+
+    @property
+    def display(self):
+        return self._display
+
+
+class AliasStorage:
+    all_aliases = dict()
+
+    @classmethod
+    def clear(cls):
+        cls.all_aliases.clear()

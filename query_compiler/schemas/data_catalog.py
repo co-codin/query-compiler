@@ -29,18 +29,18 @@ class DataCatalog:
         try:
             attr_data = cls._attributes[name]
         except KeyError:
-            cls.load_missing_attr_data_list([name])
+            cls.load_missing_attr_data_list({name})
             attr_data = cls._attributes[name]
         return attr_data['type']
 
     @classmethod
-    def load_missing_attr_data_list(cls, missing_attributes: list[str]):
+    def load_missing_attr_data_list(cls, missing_attributes: set[str]):
         url = f"{settings.data_catalog_url}/mappings"
         http_session = cls._get_http_session(url)
         try:
             graph_req = http_session.get(
                 url,
-                data=json.dumps({'attributes': missing_attributes}),
+                data=json.dumps({'attributes': tuple(missing_attributes)}),
                 timeout=settings.timeout
             )
         except RequestException as request_error:

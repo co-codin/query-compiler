@@ -1,6 +1,6 @@
 import pytest
 
-from query_compiler.schemas.attribute import Alias, Attribute
+from query_compiler.schemas.attribute import AliasStorage, Attribute
 
 
 @pytest.fixture()
@@ -43,7 +43,7 @@ def add_aliases_with_all_aggr_funcs(
     for alias, record in get_aliases_dict_value_records_with_all_aggr_funcs[
         'aliases'
     ].items():
-        Alias.all_aliases[alias] = Attribute.get(record)
+        AliasStorage.all_aliases[alias] = Attribute.get(record)
 
 
 @pytest.fixture()
