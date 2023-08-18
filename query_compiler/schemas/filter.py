@@ -84,6 +84,9 @@ class SimpleFilter(Filter):
                     case 'between':
                         left, right = self._value
                         self._value = f"{sql.quote(left)} and {sql.quote(right)}"
+                    case 'like':
+                        if not isinstance(self._value, str):
+                            raise TypeError
             except (TypeError, ValueError) as exc:
                 raise FilterValueCastError(attr_type_name, value) from exc
 
