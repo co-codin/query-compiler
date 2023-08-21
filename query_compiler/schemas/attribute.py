@@ -10,10 +10,6 @@ LOG = logging.getLogger(__name__)
 
 
 class Attribute(ABC):
-    @property
-    def attr(self):
-        return self
-
     @classmethod
     def get(cls, record):
         for class_ in (Field, Aggregate):
@@ -30,7 +26,7 @@ class Attribute(ABC):
 
     @property
     @abstractmethod
-    def id(self):
+    def field(self):
         ...
 
     @property
@@ -41,22 +37,22 @@ class Attribute(ABC):
 
 class Field(Attribute):
     def __init__(self, record):
-        self.field = record['attr']['db_link']
+        self._field = record['attr']['db_link']
         self._display = record['attr'].get('display', None)
 
     def __hash__(self):
-        return hash(self.field)
+        return hash(self._field)
 
     def __eq__(self, other):
-        return self.field == other.field
+        return self._field == other.field
 
     @property
     def table(self):
-        return DataCatalog.get_table(self.field)
+        return DataCatalog.get_table(self._field)
 
     @property
-    def id(self):
-        return self.field
+    def field(self):
+        return self._field
 
     @property
     def display(self):
@@ -66,7 +62,7 @@ class Field(Attribute):
 class Aggregate(Attribute):
     def __init__(self, record):
         self.func = record['aggregate']['function']
-        self.field = Field(
+        self._field = Field(
             {
                 'attr': {
                     'db_link': record['aggregate']['db_link']
@@ -76,14 +72,14 @@ class Aggregate(Attribute):
         self._display = record['aggregate']['display']
 
     def __hash__(self):
-        return hash((self.func, self.field))
+        return hash((self.func, self._field))
 
     def __eq__(self, other):
-        return (self.func, self.field) == (other.func, other.field)
+        return (self.func, self._field) == (other.func, other.field)
 
     @property
     def table(self):
-        return self.field.attr.table
+        return self._field.table
 
     @property
     def func(self):
@@ -97,8 +93,8 @@ class Aggregate(Attribute):
             raise UnknownAggregationFunctionError(func)
 
     @property
-    def id(self):
-        return self.field.id
+    def field(self):
+        return self._field.field
 
     @property
     def display(self):

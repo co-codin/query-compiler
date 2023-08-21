@@ -35,12 +35,6 @@ class BooleanFilter(Filter):
 
 
 class SimpleFilter(Filter):
-    @staticmethod
-    def _convert_to_tuple(value: str) -> tuple[Any, ...]:
-        value = value.strip()
-        split_value = value[1:-1].split(',')
-        return tuple((val.strip() for val in split_value))
-
     def __init__(self, record):
         self.operator = record['operator']
         self.attr = AliasStorage.all_aliases[record['alias']]
@@ -60,11 +54,10 @@ class SimpleFilter(Filter):
                 self._value = None
             case 'in' | 'between':
                 self._value = self._convert_to_tuple(value)
-                if self._operator == 'in':
-                    self._value = f"({','.join(map(sql.quote, self._value))})"
-                else:
-                    left, right = self._value
-                    self._value = self._value = f"{sql.quote(left)} and {sql.quote(right)}"
+                self._value = (
+                    f"({','.join(map(sql.quote, self._value))})" if self._operator == 'in'
+                    else f"{sql.quote(self._value[0])} and {sql.quote(self._value[1])}"
+                )
             case _:
                 self._value = sql.quote(value)
 
@@ -78,3 +71,9 @@ class SimpleFilter(Filter):
             raise UnknownOperatorFunctionError(operator)
         else:
             self._operator = operator
+
+    @staticmethod
+    def _convert_to_tuple(value: str) -> tuple[Any, ...]:
+        value = value.strip()
+        split_value = value[1:-1].split(',')
+        return tuple((val.strip() for val in split_value))

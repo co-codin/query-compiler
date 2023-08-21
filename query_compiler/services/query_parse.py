@@ -9,8 +9,7 @@ from query_compiler.schemas.data_catalog import DataCatalog
 from query_compiler.schemas.filter import Filter, SimpleFilter, BooleanFilter
 from query_compiler.schemas.table import Relation
 from query_compiler.services.access_control import check_access
-from query_compiler.errors.schemas_errors import NoAttributesInInputQuery
-from query_compiler.errors.query_parse_errors import (NoRootTable, NotOneRootTable)
+from query_compiler.errors.query_parse_errors import NoRootTable, NotOneRootTable
 
 from query_compiler.configs.settings import settings
 
@@ -46,7 +45,6 @@ def _generate_sql_query(query: str, identity_id: str) -> str:
 
 
 def _parse_query(query: dict) -> tuple[dict[str, Attribute], Filter, list[Attribute], Filter]:
-    """Function for parsing json query and creating schemas objects"""
     LOG.info(f"Starting parsing the following query {query}")
 
     _parse_aliases(query)
@@ -64,13 +62,9 @@ def _parse_query(query: dict) -> tuple[dict[str, Attribute], Filter, list[Attrib
 
 def _load_missing_attribute_data(attrs: Iterable[Attribute]):
     LOG.info('Loading missing attrs...')
-    missing_attrs = _get_missing_attribute_names(attrs)
+    missing_attrs = {attr.field for attr in attrs if not DataCatalog.is_field_in_attributes_dict(attr.field)}
     if missing_attrs:
         DataCatalog.load_missing_attr_data_list(missing_attrs)
-
-
-def _get_missing_attribute_names(attrs: Iterable[Attribute]) -> set[str]:
-    return {attr.id for attr in attrs if not DataCatalog.is_field_in_attributes_dict(attr.id)}
 
 
 def _parse_aliases(query: dict):
@@ -81,26 +75,7 @@ def _parse_aliases(query: dict):
         LOG.info(f"There's no aliases in the query {query}")
 
 
-def _parse_attributes(query: dict) -> list[Attribute] | None:
-    """Parses attributes of the input query"""
-    try:
-        attr_list = []
-        attr_set = set()
-        for record in query['attributes']:
-            attr = Attribute.get(record)
-            if attr in attr_set:
-                continue
-            attr_set.add(attr)
-            attr_list.append(attr)
-        if len(attr_list) == 0:
-            raise NoAttributesInInputQuery(query)
-        return attr_list
-    except KeyError:
-        raise NoAttributesInInputQuery(query)
-
-
 def _parse_group(query: dict) -> list[Attribute] | None:
-    """Parses group of the input query"""
     try:
         group_attrs = []
         for record in query['aliases'].values():
@@ -115,7 +90,6 @@ def _parse_group(query: dict) -> list[Attribute] | None:
 
 
 def _parse_filter(query: dict, key: Literal['filter', 'having']) -> Filter | None:
-    """Parses filter and having sections of the input query"""
     LOG.info(f'Parsing {key}...')
     try:
         return Filter.get(query[key]) if query[key] else None
@@ -124,7 +98,6 @@ def _parse_filter(query: dict, key: Literal['filter', 'having']) -> Filter | Non
 
 
 def _build_join_hierarchy(attrs: Iterable[Attribute]) -> tuple[str, list[Relation]]:
-    """Function for building join hierarchy of the json query"""
     LOG.info("Starting building join hierarchy")
     root_table_name = set()
     joined = set()
@@ -159,8 +132,6 @@ def _build_sql_query(
         having: Filter,
         distinct: bool
 ) -> str:
-    """Function for building sql query for a particular database from
-    schemas objects"""
     LOG.info("Starting building SQL query")
 
     select = _build_attributes_clause(attributes, key='select', distinct=distinct)
@@ -179,7 +150,6 @@ def _piece_sql_statements_together(*args):
 
 
 def _build_attributes_clause(attributes: Iterable[Attribute], key: Literal['select', 'group by'], distinct: bool):
-    """Builds select and group by clauses"""
     if attributes:
         attributes_to_append = (
             _get_pg_attribute(attr)
@@ -191,7 +161,6 @@ def _build_attributes_clause(attributes: Iterable[Attribute], key: Literal['sele
 
 
 def _build_from_clause(root_table_name: str, relations: list[Relation]):
-    """Builds from and join clauses"""
     from_to_append = (
         f'join {rel.table} on '
         f'{rel.related_table}.{rel.related_key} = '
@@ -203,7 +172,6 @@ def _build_from_clause(root_table_name: str, relations: list[Relation]):
 
 
 def _build_filter_clause(filter_: Filter, key: Literal['where', 'having']):
-    """Builds where and having clauses"""
     if filter_:
         pg_filter = _get_pg_filter(filter_)
         return f"{key} {pg_filter}"
@@ -213,19 +181,12 @@ def _clear():
     AliasStorage.clear()
 
 
-"""
-In case of several types of databases create abstract class with these 
-2 methods(_get_attribute and _get_filter). 
-Each type of database - each class with these 2 overridden methods
-"""
-
-
 def _get_pg_attribute(attribute: Attribute) -> str:
     if isinstance(attribute, Aggregate):
         db_name = DataCatalog.get_field(attribute.field.id)
         return f'{attribute.func}({db_name})'
     else:
-        db_name = DataCatalog.get_field(attribute.id)
+        db_name = DataCatalog.get_field(attribute.field)
         return db_name
 
 
