@@ -62,7 +62,7 @@ def _parse_query(query: dict) -> tuple[dict[str, Attribute], Filter, list[Attrib
 
 def _load_missing_attribute_data(attrs: Iterable[Attribute]):
     LOG.info('Loading missing attrs...')
-    missing_attrs = {attr.field for attr in attrs if not DataCatalog.is_field_in_attributes_dict(attr.field)}
+    missing_attrs = {attr.field for attr in attrs}
     if missing_attrs:
         DataCatalog.load_missing_attr_data_list(missing_attrs)
 
