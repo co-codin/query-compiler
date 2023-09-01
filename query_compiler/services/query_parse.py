@@ -37,7 +37,7 @@ def _generate_sql_query(query: str, identity_id: str) -> str:
     check_access(identity_id, alias_to_attr.values())
     root_table_name, tables = _build_join_hierarchy(alias_to_attr.values())
     sql_query = _build_sql_query(
-        alias_to_attr.values(), root_table_name, tables, filter_, groups, having, dict_query['distinct']
+        alias_to_attr, root_table_name, tables, filter_, groups, having, dict_query['distinct']
     )
 
     LOG.info("Generating SQL query from the json query successfully completed")
@@ -124,7 +124,7 @@ def _build_join_hierarchy(attrs: Iterable[Attribute]) -> tuple[str, list[Relatio
 
 
 def _build_sql_query(
-        attributes: Iterable[Attribute],
+        attributes: dict[str, Attribute],
         root_table_name: str,
         tables: list[Relation],
         filter_: Filter,
@@ -149,15 +149,33 @@ def _piece_sql_statements_together(*args):
     return ' '.join(filter(lambda item: item is not None, args))
 
 
-def _build_attributes_clause(attributes: Iterable[Attribute], key: Literal['select', 'group by'], distinct: bool):
-    if attributes:
-        attributes_to_append = (
-            _get_pg_attribute(attr)
-            for attr in attributes
-            if (key == 'select' and attr.display) or key == 'group by'
-        )
-        pg_attributes = ', '.join(attributes_to_append)
-        return f"{key} distinct {pg_attributes}" if distinct else f"{key} {pg_attributes}"
+def _build_attributes_clause(
+        attributes: dict[str, Attribute] | list[Attribute], key: Literal['select', 'group by'], distinct: bool
+):
+    if not attributes:
+        return None
+
+    match key:
+        case 'select':
+            attributes_to_append = (
+                f'{_get_pg_attribute(attr)} as {alias}'
+
+                if alias != attr.field
+                else _get_pg_attribute(attr)
+
+                for alias, attr in attributes.items()
+                if attr.display
+            )
+        case 'group by':
+            attributes_to_append = (
+                _get_pg_attribute(attr)
+                for attr in attributes
+            )
+        case _:
+            return None
+
+    pg_attributes = ', '.join(attributes_to_append)
+    return f"{key} distinct {pg_attributes}" if distinct else f"{key} {pg_attributes}"
 
 
 def _build_from_clause(root_table_name: str, relations: list[Relation]):
@@ -182,12 +200,8 @@ def _clear():
 
 
 def _get_pg_attribute(attribute: Attribute) -> str:
-    if isinstance(attribute, Aggregate):
-        db_name = DataCatalog.get_field(attribute.field.id)
-        return f'{attribute.func}({db_name})'
-    else:
-        db_name = DataCatalog.get_field(attribute.field)
-        return db_name
+    db_name = DataCatalog.get_field(attribute.field)
+    return f'{attribute.func}({db_name})' if isinstance(attribute, Aggregate) else db_name
 
 
 def _get_pg_filter(filter_: Filter, is_not: bool = False) -> str:
